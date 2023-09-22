@@ -50,6 +50,7 @@ from threedi_results_analysis.utils.threedi_result_aggregation.aggregation_class
     VT_FLOW_HYBRID,
     VT_NODE,
     VT_NODE_HYBRID,
+    VT_PUMP,
     VR_INTERFLOW,
     VR_SIMPLE_INFILTRATION,
     VR_INTERCEPTION,
@@ -475,7 +476,7 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
 
         # Nodes and cells
         filtered_das = filter_demanded_aggregations(
-            self.demanded_aggregations, [VT_NODE, VT_NODE_HYBRID]
+            self.demanded_aggregations, [VT_NODE, VT_NODE_HYBRID, VT_PUMP]
         )
         if len(filtered_das) > 0:
             if nodes_style is None:

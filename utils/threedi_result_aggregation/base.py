@@ -32,6 +32,7 @@ from .aggregation_classes import (
     VT_FLOW_HYBRID,
     VT_NODE,
     VT_NODE_HYBRID,
+    VT_PUMP,
 )
 from .threedigrid_ogr import threedigrid_to_ogr
 

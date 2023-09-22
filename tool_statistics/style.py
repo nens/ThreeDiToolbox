@@ -362,6 +362,10 @@ DEFAULT_STYLES = {
     "grad": {"flowline": STYLE_GRADIENT},
     "bed_grad": {"flowline": STYLE_GRADIENT},
     "wl_at_xsec": {"flowline": STYLE_SINGLE_COLUMN_GRADUATED_FLOWLINE},
+    "q_pump": {
+        "node": STYLE_SINGLE_COLUMN_GRADUATED_NODE,
+        "cell": STYLE_SINGLE_COLUMN_GRADUATED_CELL,
+    },
 
     # Nodes
     "s1": {
