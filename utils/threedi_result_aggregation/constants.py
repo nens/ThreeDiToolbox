@@ -13,6 +13,7 @@ from .aggregation_classes import (
     AggregationVariable,
     VT_NODE,
     VT_FLOW,
+    VT_PUMP,
     PRM_NONE,
     VT_FLOW_HYBRID,
     PRM_SPLIT,
@@ -187,9 +188,21 @@ agg_var_list = [
         "requirements": [],
     },
     # Pump variables
-    # NOT YET IMPLEMENTED (MY CODE) {'short_name': 'q_pump', 'long_name': 'Pump discharge', 'signed': False,
-    # 'applicable_methods': ALL_AGG_METHODS, 'var_type': VT_PUMP, 'units':{('m3','s'):(1, 1), ('m3', 'h'):(1, 3600), ('L','s'):(1000,1)},
-    # 'can_resample': False, 'pre_resample_method': PRM_NONE},
+    {
+        "short_name": "q_pump",
+        "long_name": "Pump discharge",
+        "signed": False,
+        "applicable_methods": ALL_AGG_METHODS,
+        "var_type": VT_PUMP,
+        "units": {
+            ("m3", "s"): (1, 1),
+            ("m3", "h"): (1, 3600),
+            ("L", "s"): (1000, 1),
+        },
+        "can_resample": False,
+        "pre_resample_method": PRM_NONE,
+        "requirements": [],
+    },
     # Node variables
     {
         "short_name": "s1",
