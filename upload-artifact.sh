@@ -4,8 +4,7 @@ set -u
 
 VERSION=$(grep "^version" metadata.txt| cut -d= -f2)
 
-# TODO: THREEDITOOLBOX_ARTIFACTS_KEY should be set as env variable in the travis UI.
-# TODO: TRAVIS_BRANCH is set automatically by travis
+# TODO: THREEDITOOLBOX_ARTIFACTS_KEY should be set as env variable
 ARTIFACT=ThreeDiToolbox.${VERSION}.zip
 PROJECT=ThreeDiToolbox
 

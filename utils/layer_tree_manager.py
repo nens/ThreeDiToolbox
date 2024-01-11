@@ -1,5 +1,4 @@
 from . import styler
-from .threedi_database import ThreediDatabase
 from PyQt5.QtCore import QSettings
 from qgis.core import QgsCoordinateTransform
 from qgis.core import QgsDataSourceUri
@@ -9,19 +8,6 @@ from qgis.core import QgsRectangle
 from qgis.core import QgsVectorLayer
 
 import os.path
-
-
-def _clone_vector_layer(layer):
-    """Create a new instance of a QgsVectorLayer from an existing one.
-
-    Note that QgsVectorLayer is just view on the underlying data source.
-
-    See CHANGES release 0.8.2 for the reason why layers are cloned in this
-    way. Tl;dr: segfaults occur when you delete layer groups when the same
-    layers are added multiple times
-    """
-    if layer:
-        return QgsVectorLayer(layer.source(), layer.name(), layer.providerType())
 
 
 class LayerTreeManager(object):
@@ -41,22 +27,14 @@ class LayerTreeManager(object):
     inflow_surface_subgroup_name = "surface"
 
     schematisation_advanced_settings_group_name = "advanced numerics"
-    result_layergroup_basename = "result: "
 
-    def __init__(self, iface, model_results_model):
+    def __init__(self, iface):
 
         self.iface = iface
-        self.model = model_results_model
 
         self.schematisation_layergroup = None
         self._model_layergroup = None
         self._model_layergroup_connected = False
-
-        self.result_layergroups = []
-        self.results_layers = []
-
-        self.tool_layergroup = None
-        self.tools_layers = None
 
         self.tracer_mapping = (
             # tracer, variable name
@@ -65,10 +43,6 @@ class LayerTreeManager(object):
         )
 
         # add listeners
-        self.model.model_schematisation_change.connect(self._on_set_schematisation)
-        # self.model.dataChanged.connect(self.on_change)
-        # self.model.rowsAboutToBeRemoved.connect(self.remove_results)
-        self.model.rowsInserted.connect(self.add_results)
         self.init_references_from_layer_tree()
 
     @property
@@ -78,26 +52,13 @@ class LayerTreeManager(object):
     @model_layergroup.setter
     def model_layergroup(self, value):
         if self._model_layergroup_connected:
-            # self._model_layergroup.destroyed.disconnect(
-            #     self._on_delete_model_layergroup)
             self._model_layergroup_connected = False
         self._model_layergroup = value
         if isinstance(value, QgsLayerTreeNode):
-            # self._model_layergroup.destroyed.connect(
-            #     self._on_delete_model_layergroup)
             self._model_layergroup_connected = True
 
-    def _on_delete_model_layergroup(self):
-        if self._model_layergroup_connected:
-            # self._model_layergroup.destroyed.disconnect(
-            #     self._on_delete_model_layergroup)
-            self._model_layergroup_connected = False
-        self._model_layergroup = None
-
     def on_unload(self):
-        self.model.model_schematisation_change.disconnect(self._on_set_schematisation)
-        self.model.rowsAboutToBeRemoved.connect(self.remove_results)
-        self.model.rowsInserted.connect(self.add_results)
+        pass
 
     @staticmethod
     def _mark(tree_node, marker):
@@ -151,15 +112,8 @@ class LayerTreeManager(object):
         else:
             self.schematisation_layergroup = None
 
-    def _on_set_schematisation(self, something, filename=""):
-        """Method is called when schematisation setting is changed in
-        datasource model.
-
-        Args:
-            something:
-            filename:
-
-        Returns: None
+    def _on_set_schematisation(self, filename=""):
+        """Method is called when schematisation is set
         """
 
         self.init_references_from_layer_tree()
@@ -175,11 +129,6 @@ class LayerTreeManager(object):
         split_dir = os.path.split(split[0])
 
         name = self.model_layergroup_basename + "/".join((split_dir[-1], split[-1]))
-
-        # adjust spatialite for correct visualization of layers
-        db_settings = {"db_path": filename}
-        threedi_db = ThreediDatabase(db_settings)
-        threedi_db.fix_spatial_indices()
 
         if self.model_layergroup is None:
             # todo: see if we can set 'tracer' as custom property to identify
@@ -394,76 +343,3 @@ class LayerTreeManager(object):
                 QgsProject.instance().addMapLayer(table_layer, False)
                 group.insertLayer(0, table_layer)
         QSettings().setValue("/Map/identifyAutoFeatureForm", "true")
-
-    def add_results(self, index, start_row, stop_row):
-        # unique identifier?
-
-        for row_nr in range(start_row, stop_row + 1):
-            result = self.model.rows[row_nr]
-            name = self.result_layergroup_basename + result.name.value
-
-            if self.model_layergroup is not None:
-                group = self._find_marked_child(
-                    self.model_layergroup, "result_" + result.file_path.value
-                )
-
-                if group is None:
-                    group = self.model_layergroup.insertGroup(2, name)
-                    self._mark(group, "result_" + result.file_path.value)
-
-                line, node, cell, pumpline = result.get_result_layers()
-
-                if self._find_marked_child(group, "flowlines") is None:
-                    # apply default styling on memory layers
-                    line.loadNamedStyle(
-                        os.path.join(
-                            os.path.dirname(os.path.realpath(__file__)),
-                            os.path.pardir,
-                            "layer_styles",
-                            "tools",
-                            "flowlines.qml",
-                        )
-                    )
-
-                    node.loadNamedStyle(
-                        os.path.join(
-                            os.path.dirname(os.path.realpath(__file__)),
-                            os.path.pardir,
-                            "layer_styles",
-                            "tools",
-                            "nodes.qml",
-                        )
-                    )
-
-                    QgsProject.instance().addMapLayers([line, node, pumpline], False)
-
-                    tree_layer = group.insertLayer(0, line)
-                    self._mark(tree_layer, "flowlines")
-
-                    tree_layer2 = group.insertLayer(1, pumpline)
-                    if tree_layer2 is not None:
-                        self._mark(tree_layer2, "pumplines")
-
-                    tree_layer3 = group.insertLayer(2, node)
-                    self._mark(tree_layer3, "nodes")
-
-    # TODO: make static or just function
-    def _create_layers(self, db_path, group, layernames, geometry_column=""):
-        layers = []
-        for layername in layernames:
-            if self._find_marked_child(group, layername) is None:
-                new_layer = self.create_layer(
-                    db_path, layername, geometry_column=geometry_column
-                )
-                layers.append(new_layer)
-        return layers
-
-    def remove_results(self, index, start_row, stop_row):
-        for row_nr in range(start_row, stop_row + 1):
-            result = self.model.rows[row_nr]
-            group = self._find_marked_child(
-                self.model_layergroup, "result_" + result.file_path.value
-            )
-            if group is not None:
-                group.removeAllChildren()
-                self.model_layergroup.removeChildNode(group)

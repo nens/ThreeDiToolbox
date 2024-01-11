@@ -24,8 +24,8 @@ PLUGIN_DIR = Path(__file__).parent
 if sys.stderr is not None and hasattr(sys.stderr, "fileno"):
     faulthandler.enable()
 
-print('Ensuring dependencies are installed')
-dependencies.ensure_everything_installed()
+print('Ensuring dependencies are cleaned')
+dependencies.ensure_everything_cleaned_up()
 
 
 def enable_high_dpi_scaling():
@@ -53,7 +53,6 @@ def classFactory(iface):
 
     enable_high_dpi_scaling()
     setup_logging()
-    dependencies.check_importability()
 
     from .threedi_plugin import ThreeDiPlugin
 

@@ -5,7 +5,7 @@ ThreeDiToolBox changelog
 2.5.6 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Sunset version: removes toolbox dependencies and only able to show schematisations. (#887)
 
 
 2.5.5 (2023-09-21)

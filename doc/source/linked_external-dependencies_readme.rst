@@ -1,1 +1,0 @@
-../../external-dependencies/README.rst

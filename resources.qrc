@@ -1,14 +1,7 @@
 <RCC>
     <qresource prefix="/plugins/ThreeDiToolbox" >
         <file>icons/icon.png</file>
-        <file>icons/icon_graph.png</file>
-        <file>icons/icon_hammer_small.png</file>
+        <file>icons/icon_sunset.png</file>
         <file>icons/icon_add_datasource.png</file>
-        <file>icons/icon_route.png</file>
-        <file>icons/icon_route_small.png</file>
-        <file>icons/icon_broom.png</file>
-        <file>icons/icon_statistical_analysis.png</file>
-        <file>icons/weight-scale.png</file>
-        <file>icons/icon_logfile.png</file>
     </qresource>
 </RCC>

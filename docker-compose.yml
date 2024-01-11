@@ -12,7 +12,6 @@ services:
       - qgis-settings:/root/.local/share/QGIS/
     environment:
       - DISPLAY=unix${DISPLAY}
-      - COVERALLS_REPO_TOKEN=${COVERALLS_REPO_TOKEN}
     cap_add:
       - SYS_PTRACE
 

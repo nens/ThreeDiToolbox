@@ -25,10 +25,7 @@ jobs:
           docker-compose run -e QT_QPA_PLATFORM=offscreen qgis-desktop make test
           docker-compose run -e QT_QPA_PLATFORM=offscreen qgis-desktop make flake8
           docker-compose run qgis-desktop make docstrings
-          docker-compose run qgis-desktop coveralls || true
           docker-compose run qgis-desktop make zip
-        env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
 
       - name: Publish package
         if: startsWith(github.event.ref, 'refs/tags')

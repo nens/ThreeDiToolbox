@@ -5,7 +5,6 @@
 #
 black
 coverage > 5
-coveralls
 docstr-coverage >= 1.0.4
 flake8
 isort
