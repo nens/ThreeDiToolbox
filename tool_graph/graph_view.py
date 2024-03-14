@@ -1067,7 +1067,7 @@ class BaseAddMapTool(QgsMapToolIdentify):
             layerList=self.parent().layers(),
         )
         self.widget.add_results(
-            results=results, feature_type=self.feature_type, single_feature_per_layer=True
+            results=results, feature_type=self.feature_type, single_feature_per_layer=False
         )
 
 
