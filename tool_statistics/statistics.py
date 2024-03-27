@@ -99,11 +99,13 @@ class Aggregate3DiResults(QgsTask):
 
     def run(self):
         grid_admin = str(self.result.parent().path.with_suffix('.h5'))
+        grid_admin_gpkg = str(self.result.parent().path.with_suffix('.gpkg'))
         results_3di = str(self.result.path)
 
         try:
             self.ogr_ds, self.mem_rasts = aggregate_threedi_results(
                 gridadmin=grid_admin,
+                gridadmin_gpkg=grid_admin_gpkg,
                 results_3di=results_3di,
                 demanded_aggregations=self.demanded_aggregations,
                 bbox=self.bbox,
