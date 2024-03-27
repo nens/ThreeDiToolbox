@@ -4,13 +4,13 @@
 set -e
 #set -u
 
-BRANCH=${GITHUB_HEAD_REF:-master}
+BRANCH=${GITHUB_HEAD_REF:-refactor}
 
-ARTIFACT=ThreeDiToolbox-${BRANCH}.zip
+ARTIFACT=threedi_results_analysis-${BRANCH}.zip
 PROJECT=threeditoolbox-dev
 
 # Rename generated ThreeDiToolbox.zip to include branch name.
-cp ThreeDiToolbox.zip ${ARTIFACT}
+cp threedi_results_analysis.zip ${ARTIFACT}
 
 curl -X POST \
      --retry 3 \

@@ -1,92 +1,67 @@
-ThreeDiToolbox
-==============
+3Di Results Analysis
+====================
 
-.. image:: https://coveralls.io/repos/github/nens/ThreeDiToolbox/badge.svg?branch=HEAD
-    :target: https://coveralls.io/github/nens/ThreeDiToolbox?branch=HEAD
+A QGIS plugin for analyzing 3Di results and visualize computational grids in the 3Di Modeller Interface.
 
+.. _`3Di`: https://3diwatermanagement.com/
 
-A QGIS plugin with tools for working with models and netCDF results from
-`3Di`_ hydraulic/hydrologic modelling software.
+The tools that this plugin provides allow you to:
 
-.. _`3Di`: http://www.3di.nu/
-
-The main features are:
-
-- Visualization of model network structure and discretization
-- Time series visualization
-- Sideviews
-- Visualize results spatially
-- An extensible toolbox with custom Python scripts (for e.g. statistical analysis)
-- Import of sufhyd files
-
-Take a look at the `Wiki`_ for more information.
-
-.. _`Wiki`: https://github.com/nens/ThreeDiToolbox/wiki
+- Make (maximum) water depth or water level rasters from raw 3Di simulation results.
+- Visualize results on the map canvas for a specific timestep
+- Plot timeseries of discharge, water level or any other variable in a graph
+- Make side view plots of water levels and water level gradients at any time during the simulation
+- Calculate the water balance for any given area in the model domain
+- Calculate aggregated results such as maximum water level per node or total discharge per flowline
+- Calculate the total discharge crossing a user-defined line
+- Find the upstream or downstream area for any node or group of nodes
 
 
-Installation on windows
------------------------
+Installation
+------------
 
-You need to install Qgis 3.16.5+ (the "long term release"). Either the
-stand-alone installer or the osgeo4w install is fine. For osgeo4w, pick the
-"qgis LTR full" version.
+Prerequisites
+^^^^^^^^^^^^^
 
-Add the Lizard QGIS repository: via the QGIS menu bar go to "Plugins > Manage
-And Install Plugins... > Settings". Add
-``https://plugins.lizard.net/plugins.xml`` and reload. Install the plugin by
-selecting ThreeDiToolbox.
+**Windows**
 
-The extra dependencies that we need are bundled with the plugins and
-automatically installed into the ``python\`` directory of your qgis profile.
+Install Qgis 3.28.5+ (the "long term release") from qgis.org. 
 
 
-Installation on linux
----------------------
+**Ubuntu**
 
-You need to install Qgis 3.4 (the "long term release"). On ubuntu 18.04
-(bionic), the following works::
+Install QGIS and the required python3-h5py dependency::
 
-  $ echo "deb https://qgis.org/ubuntu-ltr bionic main" >> /etc/apt/sources.list
-  $ apt-key adv --keyserver keyserver.ubuntu.com --recv-key 51F523511C7028C
-  $ apt-get update
-  $ apt-get install qgis python3-h5py
-
-This installs qgis and the necessary ``h5py`` dependency.
-
-Inside qgis, add https://plugins.lizard.net/plugins.xml as a package
-index. Now you can install ThreeDiToolbox.
-
-The extra dependencies that we need (apart from ``h5py``) are bundled with the
-plugins and automatically installed into the ``python\`` directory of your
-qgis profile.
+  $ sudo apt install qgis python-h5py
 
 
-Installation on OSX
--------------------
+Getting the plugin
+^^^^^^^^^^^^^^^^^^
 
-Running the plugin on OSX *should* be possible, but you need to make sure to
-install qgis LTR with gdal, numpy and h5py.
+- In QGIS, goto "Plugins > Manage And Install Plugins... > Settings"
+- Add ``https://plugins.lizard.net/plugins.xml`` and reload
+- Install the plugin by selecting ``3Di Results Analysis``
+
+
+Installation notes
+^^^^^^^^^^^^^^^^^^
+
+If you have the ``PIP_REQUIRE_VIRTUALENV=1`` setting you may have to
+(temporally) remove that in order to install the plugin, but be assured that
+all the required dependencies are bundled with the plugin and automatically
+installed into the ``deps`` directory of the plugin in your QGIS profile.
 
 
 Local development
 -----------------
 
-Local development happens with docker to make sure we're working in a nicely
+On Linux, local development happens with docker to make sure we're working in a nicely
 isolated environment. So first build the docker::
 
   $ docker-compose build
 
-If your user ID isn't ``1000``, you can run it like this::
-
-  $ docker-compose build --build-arg uid=`id -u` --build-arg gid=`id -g`
-
 The docker-qgis's settings are persisted in a "named docker volume",
 ``qgis-docker``. To wipe it clean, run ``docker-compose down -v``.
-
-The tests that run on github cache the docker image that is being build
-in order to shave 5 minutes off the test duration. The image is automatically
-rebuild when the ``Dockerfile``, ``docker-compose.yml`` or one of the two
-`requirements` files changes.
 
 To run the full tests including coverage report and flake8::
 
@@ -107,6 +82,11 @@ sorting) and flake8 (reporting missing imports and so), run::
 
   $ docker-compose run --rm qgis-desktop make beautiful
 
+To run the QGIS application itself in the docker::
+
+  $ xhost +local:docker  # you may need this to run the gui
+  $ docker-compose run --rm qgis-desktop qgis
+
 
 Release
 -------
@@ -120,7 +100,7 @@ commands and follow their steps::
     $ fullrelease
 
 This creates a new release and tag on github. Additionally, a zip file
-``ThreeDiToolbox.<version>.zip`` is created. Github actions is configured to also
+``threedi_results_analysis.<version>.zip`` is created. Github actions is configured to also
 create this zip and upload it to https://plugins.lizard.net/ when a new tag is
 created, using the ``upload-artifact.sh`` script.
 

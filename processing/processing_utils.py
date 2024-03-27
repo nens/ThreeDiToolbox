@@ -2,7 +2,7 @@ import os
 from collections import OrderedDict
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsVectorLayer
-from ThreeDiToolbox.utils.utils import safe_join
+from threedi_results_analysis.utils.utils import safe_join
 from threedigrid.admin.exporters.geopackage import GeopackageExporter
 
 

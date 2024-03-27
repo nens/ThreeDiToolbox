@@ -1,4 +1,4 @@
-from ThreeDiToolbox import PLUGIN_DIR
+from threedi_results_analysis import PLUGIN_DIR
 
 
 DOC_SOURCE_DIR = PLUGIN_DIR / "doc" / "source"

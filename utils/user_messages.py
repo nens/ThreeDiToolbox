@@ -9,13 +9,17 @@ from qgis.PyQt.QtWidgets import QProgressBar
 from qgis.utils import iface
 
 
-# There used to be a ``def log(msg, level="INFO")`` here.
-# It isn't needed anymore: just use regular python logging instead.
-
-
-def pop_up_info(msg="", title="Information", parent=None):
+def pop_up_info(msg: str = "", title: str = "Information", parent=None):
     """Display an info message via Qt box"""
     QMessageBox.information(parent, title, "%s" % msg)
+
+
+def pop_up_critical(msg: str = "", title: str = "Critical", parent=None):
+    if iface is None:
+        return
+
+    """Display an error message via Qt box"""
+    QMessageBox.critical(parent, title, msg)
 
 
 def statusbar_message(msg=""):
@@ -41,6 +45,13 @@ def messagebar_message(title, msg, level=None, duration=0):
     if not level:
         level = Qgis.Info
     iface.messageBar().pushMessage(title, msg, level, duration)
+
+
+def messagebar_pop_message():
+    """Remove the currently displayed item from the bar and display the next item in the stack.
+       If no remaining items are present, the bar will be hidden."""
+    iface.messageBar().popWidget()
+    QApplication.processEvents()
 
 
 def pop_up_question(msg="", title="", parent=None):
@@ -70,17 +81,20 @@ class StatusProgressBar(object):
         if iface is not None:
             iface.messageBar().pushWidget(self.message_bar, Qgis.Info)
 
-        self.step_size = 1
         self.progress = 0
         iface.mainWindow().repaint()
 
-    def set_step_size(self, step_size):
-
-        self.step_size = step_size
-
     def increase_progress(self, steps=1, message=None):
 
-        self.progress += steps * self.step_size
+        self.progress += steps
+        self.progress_bar.setValue(self.progress)
+        if message:
+            self.message_bar.setText(message)
+        QApplication.processEvents()
+
+    def set_value(self, val, message=None):
+
+        self.progress = val
         self.progress_bar.setValue(self.progress)
         if message:
             self.message_bar.setText(message)

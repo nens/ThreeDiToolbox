@@ -20,7 +20,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 import sphinx_rtd_theme
-import ThreeDiToolbox.conftest  # Ensure the py import fix has been applied.
+import threedi_results_analysis.conftest  # Ensure the py import fix has been applied.
 
 
 # -- General configuration ------------------------------------------------

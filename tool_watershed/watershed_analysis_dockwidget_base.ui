@@ -37,15 +37,15 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>361</width>
-         <height>863</height>
+         <width>357</width>
+         <height>855</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
          <widget class="QGroupBox" name="groupBox_3">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -53,13 +53,13 @@
           <property name="minimumSize">
            <size>
             <width>0</width>
-            <height>200</height>
+            <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
             <width>16777215</width>
-            <height>200</height>
+            <height>16777215</height>
            </size>
           </property>
           <property name="title">
@@ -68,44 +68,24 @@
           <layout class="QVBoxLayout" name="verticalLayout_2">
            <item>
             <widget class="QLabel" name="label_3">
-             <property name="text">
-              <string>3Di results NetCDF:</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QgsFileWidget" name="QgsFileWidget3DiResults">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
-             <property name="acceptDrops">
-              <bool>true</bool>
-             </property>
-             <property name="filter">
-              <string>results_3di.nc</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_2">
              <property name="text">
-              <string>3Di gridadmin file:</string>
+              <string>3Di results:</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QgsFileWidget" name="QgsFileWidgetGridAdmin">
+            <widget class="QComboBox" name="comboBoxResult">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
-             </property>
-             <property name="filter">
-              <string>gridadmin.h5</string>
              </property>
             </widget>
            </item>
@@ -113,6 +93,12 @@
             <widget class="QLabel" name="labelSqlite">
              <property name="enabled">
               <bool>true</bool>
+             </property>
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
              </property>
              <property name="toolTip">
               <string>Required only when analysing (impervious) surfaces (0D inflow)</string>
@@ -126,6 +112,12 @@
             <widget class="QgsFileWidget" name="QgsFileWidgetSqlite">
              <property name="enabled">
               <bool>true</bool>
+             </property>
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
              </property>
              <property name="toolTip">
               <string>Required only when analysing (impervious) surfaces (0D inflow)</string>
@@ -342,27 +334,10 @@
            <string>Outputs</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_2">
-           <item row="3" column="0" colspan="2">
+           <item row="4" column="0" colspan="2">
             <widget class="QPushButton" name="pushButtonClearResults">
              <property name="text">
               <string>Clear results</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QCheckBox" name="checkBoxDownstream">
-             <property name="text">
-              <string>Downstream</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QCheckBox" name="checkBoxBrowseResultSets">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="text">
-              <string>Browse result sets:</string>
              </property>
             </widget>
            </item>
@@ -376,7 +351,7 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="1">
+           <item row="3" column="1">
             <widget class="QSpinBox" name="spinBoxBrowseResultSets">
              <property name="enabled">
               <bool>false</bool>
@@ -389,8 +364,48 @@
              </property>
             </widget>
            </item>
+           <item row="1" column="0">
+            <widget class="QCheckBox" name="checkBoxDownstream">
+             <property name="text">
+              <string>Downstream</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QCheckBox" name="checkBoxBrowseResultSets">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Browse result sets:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QCheckBox" name="checkBoxSmoothing">
+             <property name="text">
+              <string>Smooth result watersheds</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </widget>

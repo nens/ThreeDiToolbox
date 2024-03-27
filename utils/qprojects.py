@@ -1,13 +1,27 @@
 # (c) Nelen & Schuurmans, see LICENSE.rst.
 
 from io import IOBase
-from qgis.core import QgsProject
+from qgis.core import QgsProject, QgsVectorLayer, QgsMapLayer
 
 import logging
 import os
 
 
 logger = logging.getLogger()
+
+
+def set_read_only(layer: QgsVectorLayer, enable: bool) -> bool:
+    """Marks the layer as readonly, but also removes the Removable flag"""
+    if not layer.setReadOnly(enable):
+        logger.error("Unable to set layer to read-only")
+        return False
+
+    if enable:
+        layer.setFlags(QgsMapLayer.Searchable | QgsMapLayer.Identifiable)
+    else:
+        layer.setFlags(QgsMapLayer.Searchable | QgsMapLayer.Identifiable | QgsMapLayer.Removable)
+
+    return True
 
 
 class ProjectStateMixin(object):
@@ -232,18 +246,6 @@ class ProjectStateMixin(object):
 
         """
         return "threedi_toolbox" + tool_name
-
-    def save_settings_to_project(self, tool_name, settings):
-        """sets multiple settings to QgsProject
-
-        Args:
-            tool_name (str): within plugin unique tool name, used as
-                key for storage of state
-            settings (dict): dictionary of settings key and state values
-        """
-        name = self.get_tool_state_name(tool_name)
-        for key, value in settings:
-            QgsProject.instance().writeEntry(name, key, value)
 
     def save_setting_to_project(self, tool_name, key, value_list):
         """sets single setting to QgsProject

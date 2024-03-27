@@ -6,7 +6,7 @@ from qgis.core import (
     QgsProcessingParameterFile,
     QgsProcessingParameterFileDestination,
 )
-from ThreeDiToolbox.processing.processing_utils import gridadmin2geopackage, load_computational_layers
+from threedi_results_analysis.processing.processing_utils import gridadmin2geopackage, load_computational_layers
 
 
 class ThreeDiConvertToGpkgAlgorithm(QgsProcessingAlgorithm):

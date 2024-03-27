@@ -1,13 +1,13 @@
 """Tests QGIS plugin init."""
-from ThreeDiToolbox import dependencies
-from ThreeDiToolbox import PLUGIN_DIR
+from threedi_results_analysis import dependencies
+from threedi_results_analysis import PLUGIN_DIR
 
 import configparser
 import importlib
 import logging
 import mock
 import pkg_resources
-import ThreeDiToolbox
+import threedi_results_analysis
 
 
 logger = logging.getLogger(__name__)
@@ -57,10 +57,10 @@ def test_classFactory(qtbot):
         # Don't let it set up all the tools, we're testing that elsewhere.
         return
 
-    # Somehow lizard-connector seemed to be missing after a recent change, that's why we install
+    # Somehow some deps seemed to be missing after a recent change, that's why we install
     # everything again.
     importlib.reload(pkg_resources)
     dependencies.ensure_everything_installed()
-    with mock.patch("ThreeDiToolbox.threedi_plugin.ThreeDiPlugin.__init__", mock_init):
+    with mock.patch("threedi_results_analysis.threedi_plugin.ThreeDiPlugin.__init__", mock_init):
         iface = mock.Mock()
-        assert ThreeDiToolbox.classFactory(iface)
+        assert threedi_results_analysis.classFactory(iface)

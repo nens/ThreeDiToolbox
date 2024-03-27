@@ -1,5 +1,232 @@
-ThreeDiToolBox changelog
+3Di Results Analysis changelog
 ========================
+
+3.7 (unreleased)
+----------------
+
+- Bump threedidepth to 0.6.3.
+
+
+3.6 (2024-03-14)
+----------------
+
+- Bump threedidepth to 0.6.2.
+
+
+3.5 (2024-03-14)
+----------------
+
+- Add model metadata to the layer menu when loading a computational grid (#980)
+- Result aggregation: Fix units widget is not updated when switching Variable (#983)
+- Water balance tool: Fix switching tabs resets the water balance terms checkboxes (#984)
+- Water depth/level processing algorithm - Remove popups (#985)
+
+3.4 (2024-01-16)
+----------------
+
+- Fixed issue that no netcdf could be loaded in Water Depth Algorithm (caused by h5py breaking change) (#966)
+- Water depth algorithm: include days in time display (#661)
+- Show warnings (capture log) when using processing algorithm "Computational grid from schematisation" (#944)
+- Bumped threedi-modelchecker to 2.5.*
+
+3.3 (2023-12-01)
+----------------
+
+- Bumped threedigrid to 2.2.*
+- Moved handling of the 3Di working directory structure to threedi_mi_utils module.
+
+
+3.2 (2023-11-01)
+----------------
+
+- Statistics: Add two water on street presets.
+- General: added some layer loading feedback.
+- Passed handling of the 3Di working directory structure to `threedi_mi_utils` package.
+
+
+3.1.12 (2023-10-19)
+-------------------
+
+- Cross-sectional discharge: minor bugfix to correctly set the attributes of the intersected flowlines
+- Sideview: fix for pure 1D models (#931)
+- Statistics: removed water_on_street preset
+
+
+3.1.11 (2023-10-02)
+-------------------
+
+- Bumped scipy to 1.10.1 (depending on qgis version)
+
+
+3.1.10 (2023-09-29)
+-------------------
+
+- Visualization: simplify getting result values.
+- Result browser: fixed error when result folder of schematisation is missing.
+- Sideview: directly retrieving waterlevels via threedigrid.
+
+
+3.1.9 (2023-09-22)
+------------------
+
+- Validator: now reparents an added result when a grid with same slug is already present in model.
+- ThreediResult class now uses grid from parent node instead of relative (local) (#890)
+- Sideview: X marker and red path remain when different maptool is selected (#891)
+- Sideview: Water colors now different for each result (#891)
+- Sideview: autoscale now takes culvert into account (#891)
+- Sideview: minor changes in look&feel (#891, #900)
+- Sideview: current route is now kept when maptool is deselected (#891)
+- Graph: added batch delete option (#884)
+- Graph: features with same id, but different layer should have different color (#895)
+- Graph: fixed type column in table.
+- Removed BaseDataSource abstract class
+- Statistics: fix python error with "Bed level gradient" (#876)
+- Statistics: assume has_interflow for older models (#889)
+- Visualization: Remove legend subgroup hidden feature (#769)
+- Visualization: fix TypeError for result without net cumulative discharge (#903)
+- Water balance: enable selection of multipolygons (#885)
+- Results: changed notification when working directory not set in settings (#899)
+- Generated layers for watershed and statistics no longer contain (redundant) spatialite_id, node_type_description and z_coordinate (#862)
+- Sideview: do not autoscale when toggling results plot (#915)
+- Sideview, Statistics: include computational grid name in result selector comboboxes (#902)
+- Removed plugin "Experimental" tag (#917)
+
+
+3.1.8 (2023-09-04)
+------------------
+
+- Graph: added option to add multiple selected features at once (#888)
+
+
+3.1.7 (2023-08-21)
+------------------
+
+- Statistics: fixed issue in making variables list dynamic based on model meta (#851)
+- Statistics: Change style for water on street duration preset (#872)
+- Waterbalance: Fixed bug in hover event processing. (#871)
+- Statistics/Watershed: Attributes are now copied from computational grid layers (#862)
+- About: changed title and content (#878)
+- Waterbalance: Hide autorange and show labels (#877)
+- Animation: fixed incorrect log warning (#879)
+- Menu: changed label of toolbox item to "3Di Results Analysis"
+- Result browser tab: add buttons are enabled again after addition of grid or result (#881)
+- Animation: Legend subgroups (#769)
+- Watershed: adding catchment result when animation styling is selected results no longer results in error (#883)
+- Watershed: fixed bug when removing result
+- Watershed: use markers instead of styling to denote analyzed nodes (#882)
+- Animation tool: added experimental rule-based legend styling (#769)
+
+
+3.1.6 (2023-07-20)
+------------------
+
+- Sideview: added dots at vertical line intersections with bottom level, cross-section top, exchange level and water level) (#838)
+- Sideview: dots and vertical lines indicating nodes can now be toggled (#838)
+- Graph: removed delete button (#839)
+- Result Manager: UI is temporarily disabled when grid/result is being loaded (#860)
+- Result Manager: hide dockwidget on startup (#816)
+- Animation: fixed bug in changing parameters
+- Animation: flowline arrows are now correctly disabled when zoomed out (#859)
+- Waterbalance: Leave out irrelevant flows from barchart and graph (#857)
+- Removed a lot of unused code
+- Water Balance: updated Water Balance tool (#856, #868, #855)
+- Statistics: added preset "Water on street duration" (#845)
+
+
+3.1.5 (2023-06-21)
+------------------
+
+- Watershed: smoothing of result watershed polygon is fixed and configurable via checkbox (#668).
+- Graph: user-defined label in legend is now set per plot instead of per feature (#840)
+- Graph: Use "{grid name} | {result name} | ID {id}" as default label (#840)
+- Graph: Added splitter so plots and legends can be resized (#840)
+- Graph: Line pattern and color is now shown in legend (#840)
+- Graph: Legend now only shows checkbox, line pattern/color and label. Other columns are hidden and can be shown via checkbox (#840)
+- Statistics: Preliminary replacement of Statistics tool with new Custom Statistics tool (https://github.com/threedi/beta-plugins/tree/master/threedi_custom_stats) (#669)
+- Statistics: Removed Custom Statistic test scripts as they are no longer functional/compatible with current version of code (unable to easily transfer in unit tests)
+- Watershed: some proper handling when result group is deleted
+- Result Manager: Added option for users to right-click on any item in the list and delete it via the context menu (#844)
+- Removed Cache Clearer tool and Result Selection tool (#843)
+
+- Bump threedidepth to 0.6.1
+- Add algorithm for maximum waterdepth to processing toolbox.
+- Make the plugin work with all QGis versions by making installed
+  h5py version depend on QGis version.
+
+2.5.3 (2023-06-16)
+------------------
+
+- Bump threedi-modelchecker to 2.2.*
+- Bump threedi-schema to 0.217.*
+- Bump hydxlib to 1.5.1
+- Bump threedigrid-builder to at least 1.11.4
+
+
+3.1.4 (2023-06-06)
+------------------
+
+- Sideview feature-complete for multiple results and grids (#806, #811, #812, #670, #808, #789, #826)
+- Result Manager: fixed bug when working dir contained a revision with number 0 (#822)
+- Result Manager: grid and result id (uuid) are now saved in project file.
+- Result Manager: updated flow of deletion signals (layers are unloaded after grid/results are removed from tools)
+- Result Manager: fixed bug when pressing delete button with empty model.
+- Result Manager: clear now immediately deletes nodes during depth-first post-order traversal
+- Result Manager: clearing the QGIS project invalidates the tree view (#833)
+- Result Manager: computational grid layers are now stored in separate subgroup (#835)
+- Result Manager: checkboxes are now shown as opened or closed eye icons (#836)
+- Graph tool: maptools are disabled when tabs are switched (#824)
+- Graph tool: Fixed bug where deactivated plots were added again when parameter/units or absoluteness was changed (#825)
+- Graph tool: default variable for pump should be 'discharge pump' (#819)
+- Graph tool: plots can be deleted via context menu (#840)
+- Graph tool: list of parameters in combobox is now union of parameterset of results (#819)
+- Removed wiki related files (wiki has been disabled)
+- Graph tool: pump can now only be added as line feature or node feature, but not both (#829)
+- Graph tool: Only one of 2D Nodes and cells with same feature ID can be plotted (#829)
+- Graph tool: change "Nodes" to "Nodes & cells" (#818)
+- Result manager: fixed bug that result was not removed when other result was checked.
+- Watershed tool is now feature complete (#668)
+- Bump threedi-modelchecker to 2.2.0
+
+
+3.1.3 (2023-03-21)
+------------------
+
+- Graph tool: improved feature selection (#787, #787, #792).
+- Use ThreeDiGrid to retrieve model slug.
+- Fixed Animation Tool for 1D (no cells) model (#788).
+- Added unit tests for Results Analysis model and validation.
+- Revision without results (but with gridadmin file) is now shown in result dialog (#791)
+- Updated several dependencies, including SQLAlchemy (#793).
+- Updated docker image to QGIS 3.28 (#716).
+
+
+3.1.2 (2023-02-28)
+------------------
+
+- Initial work on Sideview refactor.
+- New working directory dialog when opening files.
+- Animation tool: time indicator now shown in Results Manager
+- Minor changes to animation styling and class bound calculations (#784).
+- Added support for special symbols in paths (#782).
+- Make temporal controller visible when checking (visualizing) result (#768).
+
+
+3.1.1 (2023-02-10)
+------------------
+
+- Renamed module name in code.
+
+
+3.1 (2023-02-10)
+----------------
+
+- Fixed upload script.
+
+
+3.0 (2023-02-10)
+----------------
+
+- Initial beta version of results analysis feature.
 
 
 2.5.6 (unreleased)
@@ -52,6 +279,15 @@ ThreeDiToolBox changelog
 2.5 (2023-02-06)
 ----------------
 
+- Improved NetCDF validation (detect partial downloads). (#471)
+
+- Initial version of Results Manager. (#662)
+
+- Restructured folder structure in processing algorithm folder. (#724)
+
+- Default inputs for "Computational grid from schematisation" processing algorithm no longer set. (#723)
+
+- Several Commands have been converted to Processing Algorithm and/or removed. (#715)
 - Added usage of threedi_schema package
 - Replaced pygeos dependency with a Shapely
 - Fixed raster checks

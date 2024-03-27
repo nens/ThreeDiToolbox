@@ -1,4 +1,4 @@
-from ThreeDiToolbox import threedi_plugin
+from threedi_results_analysis import threedi_plugin
 
 
 def test_smoke():

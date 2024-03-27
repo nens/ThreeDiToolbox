@@ -8,7 +8,7 @@ services:
 
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix  # Allow GUI application to run in docker
-      - .:/root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/ThreeDiToolbox
+      - .:/root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/threedi_results_analysis
       - qgis-settings:/root/.local/share/QGIS/
     environment:
       - DISPLAY=unix${DISPLAY}

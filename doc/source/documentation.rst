@@ -60,18 +60,18 @@ Some hints:
     #: Handy constant for building relative paths.
     PLUGIN_DIR = Path(__file__).parent
 
-- Refer to it (:py:data:`ThreeDiToolbox.PLUGIN_DIR`) like this::
+- Refer to it (:py:data:`threedi_results_analysis.PLUGIN_DIR`) like this::
 
-    :py:data:`ThreeDiToolbox.PLUGIN_DIR`
+    :py:data:`threedi_results_analysis.PLUGIN_DIR`
 
 - From the regular documentation (so: mostly your ``README.rst`` files), try
   to refer to the implementation details to allow going back and forth between
   them. See `the sphinx documentation
   <https://www.sphinx-doc.org/en/master/domains.html#cross-referencing-python-objects>`_.
-  For example, :py:class:`ThreeDiToolbox.utils.qlogging.QgisLogHandler` is
+  For example, :py:class:`threedi_results_analysis.utils.qlogging.QgisLogHandler` is
   generated with this::
 
-    :py:class:`ThreeDiToolbox.utils.qlogging.QgisLogHandler`
+    :py:class:`threedi_results_analysis.utils.qlogging.QgisLogHandler`
 
 - Point at documentation files (for example :doc:`documentation`) like this::
 

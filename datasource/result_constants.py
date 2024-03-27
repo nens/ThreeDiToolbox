@@ -135,4 +135,3 @@ layer_information = [
 
 # TODO: QH is also defined above.
 LAYER_OBJECT_TYPE_MAPPING = dict([(a[0], a[1]) for a in layer_information])
-LAYER_QH_TYPE_MAPPING = dict([(a[0], a[2]) for a in layer_information])

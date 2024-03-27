@@ -1,17 +1,40 @@
 """Imported in __init__.py"""
 from itertools import tee
 from uuid import uuid4
-from ThreeDiToolbox.datasource.result_constants import AGGREGATION_VARIABLES
-from ThreeDiToolbox.datasource.result_constants import CUMULATIVE_AGGREGATION_UNITS
-from ThreeDiToolbox.datasource.result_constants import H_TYPES
-from ThreeDiToolbox.datasource.result_constants import Q_TYPES
-from ThreeDiToolbox.datasource.result_constants import SUBGRID_MAP_VARIABLES
+from typing import List
+from threedi_results_analysis.datasource.result_constants import AGGREGATION_VARIABLES
+from threedi_results_analysis.datasource.result_constants import CUMULATIVE_AGGREGATION_UNITS
+from threedi_results_analysis.datasource.result_constants import H_TYPES
+from threedi_results_analysis.datasource.result_constants import Q_TYPES
+from threedi_results_analysis.datasource.result_constants import SUBGRID_MAP_VARIABLES
 
 import logging
 import os
 import shutil
 
 logger = logging.getLogger(__name__)
+
+
+def python_value(value, default_value=None, func=None):
+    """
+    help function for translating QVariant Null values into None
+    value: QVariant value or python value
+    default_value: value in case provided value is None
+    func (function): function for transforming value
+    :return: python value
+    """
+
+    # check on QVariantNull... type
+    if hasattr(value, "isNull") and value.isNull():
+        return default_value
+    else:
+        if default_value is not None and value is None:
+            return default_value
+        else:
+            if func is not None:
+                return func(value)
+            else:
+                return value
 
 
 def backup_sqlite(filename):
@@ -24,6 +47,13 @@ def backup_sqlite(filename):
     )
     shutil.copyfile(filename, backup_sqlite_path)
     return backup_sqlite_path
+
+
+def listdirs(path: str) -> List[str]:
+    """
+    Returns a (non-recursive) list of directories in a specific path.
+    """
+    return [os.path.join(path, d) for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
 
 
 def safe_join(*path):
@@ -41,61 +71,6 @@ def pairwise(iterable):
     a, b = tee(iterable)
     next(b, None)
     return zip(a, b)
-
-
-def parse_db_source_info(source_info):
-    """
-    parses the source info string as returned by
-    <layer name>.dataProvider().dataSourceUri()
-
-    Args:
-        source_info: source info string as returned by
-          <layer name>.dataProvider().dataSourceUri()
-
-    Returns:
-        A dict like so::
-
-            {
-                'db_name': '',
-                'host': '',
-                'password': '',
-                'port': '',
-                'srid': '',
-                'table_name': '',
-                'schema_name': '',
-                'type': '',
-                'user': ''
-            }
-
-    """
-    import re
-
-    info_dict = {}
-
-    if not source_info[:6] == "dbname":
-        return
-    layer_info = source_info.replace("'", '"')
-    raw_dict = dict(re.findall(r'(\S+)="?(.*?)"? ', layer_info))
-    info_dict["database"] = raw_dict.get("dbname", "")
-    info_dict["username"] = raw_dict.get("user", "")
-    info_dict["password"] = raw_dict.get("password", "")
-    info_dict["srid"] = raw_dict.get("srid", "")
-    info_dict["type"] = raw_dict.get("type", "")
-    info_dict["host"] = raw_dict.get("host", "")
-    info_dict["port"] = raw_dict.get("port", "")
-
-    if info_dict["database"].endswith("sqlite"):
-        info_dict["table_name"] = raw_dict["table"]
-        info_dict["schema"] = ""
-        info_dict["db_type"] = "spatialite"
-        info_dict["host"] = info_dict["database"]
-    else:
-        # need some extra processing to get table name and schema
-        schema_name, table_name = raw_dict["table"].split(".")
-        info_dict["schema"] = schema_name.strip('"')
-        info_dict["table_name"] = table_name.strip('"')
-        info_dict["db_type"] = "postgres"
-    return info_dict
 
 
 def parse_aggvarname(aggvarname):
@@ -147,11 +122,16 @@ def generate_parameter_config(subgrid_map_vars, agg_vars):
         "med": "median",
         "cum_positive": "positive cumulative",
         "cum_negative": "negative cumulative",
+        "current": "current",
     }
 
     for varname in subgrid_map_vars:
         varinfo = subgrid_map_vars_mapping[varname]
-        d = {"name": varinfo[0].capitalize(), "unit": varinfo[1], "parameters": varname}
+        d = {
+            "name": varinfo[0].capitalize(),
+            "unit": varinfo[1],
+            "parameters": varname,
+        }
         if varname in Q_TYPES:
             config["q"].append(d)
         elif varname in H_TYPES:
@@ -164,7 +144,7 @@ def generate_parameter_config(subgrid_map_vars, agg_vars):
         if _agg_method in verbose_agg_method:
             agg_method_display_name = verbose_agg_method[_agg_method]
         else:
-            logger.critical("Unknown agg method: %s", _agg_method)
+            logger.info(f"Unknown agg method: {_agg_method} ({aggvarname})")
             agg_method_display_name = _agg_method
 
         # Adjust the unit for cumulative method

@@ -13,6 +13,9 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">selection-background-color: rgb(218, 218, 218);</string>
+  </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="1" column="3">
     <widget class="QLCDNumber" name="lcdNumber">
@@ -21,6 +24,9 @@
      </property>
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
+     </property>
+     <property name="digitCount">
+      <number>7</number>
      </property>
      <property name="segmentStyle">
       <enum>QLCDNumber::Flat</enum>

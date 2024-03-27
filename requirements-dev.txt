@@ -4,13 +4,13 @@
 # installing our application's dependencies like numpy or Shapely!
 #
 black
-coverage > 5
 coveralls
+coverage >6.1.1,<7.0
 docstr-coverage >= 1.0.4
 flake8
 isort
 mock
-pytest
+pytest < 8.0
 pytest-cov
 pytest-flake8
 pytest-qt

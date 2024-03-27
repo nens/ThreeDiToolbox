@@ -3487,70 +3487,70 @@
           <Option type="Map">
             <Option name="map" type="List">
               <Option type="Map">
-                <Option name="1D Embedded" type="QString" value="0"/>
+                <Option name="0: 1D Embedded" type="QString" value="0"/>
               </Option>
               <Option type="Map">
-                <Option name="1D Isolated" type="QString" value="1"/>
+                <Option name="1: 1D Isolated" type="QString" value="1"/>
               </Option>
               <Option type="Map">
-                <Option name="1D Connected" type="QString" value="2"/>
+                <Option name="2: 1D Connected" type="QString" value="2"/>
               </Option>
               <Option type="Map">
-                <Option name="1D Long-crested structure" type="QString" value="3"/>
+                <Option name="3: 1D Long-crested structure" type="QString" value="3"/>
               </Option>
               <Option type="Map">
-                <Option name="1D Short-crested structure" type="QString" value="4"/>
+                <Option name="4: 1D Short-crested structure" type="QString" value="4"/>
               </Option>
               <Option type="Map">
-                <Option name="1D Double connected" type="QString" value="5"/>
+                <Option name="5: 1D Double connected" type="QString" value="5"/>
               </Option>
               <Option type="Map">
-                <Option name="1D-2D Single connected line with storage" type="QString" value="51"/>
+                <Option name="51: 1D-2D Single connected line with storage" type="QString" value="51"/>
               </Option>
               <Option type="Map">
-                <Option name="1D-2D Single connected line without storage" type="QString" value="52"/>
+                <Option name="52: 1D-2D Single connected line without storage" type="QString" value="52"/>
               </Option>
               <Option type="Map">
-                <Option name="1D-2D Double connected line with storage" type="QString" value="53"/>
+                <Option name="53: 1D-2D Double connected line with storage" type="QString" value="53"/>
               </Option>
               <Option type="Map">
-                <Option name="1D-2D Double connected line without storage" type="QString" value="54"/>
+                <Option name="54: 1D-2D Double connected line without storage" type="QString" value="54"/>
               </Option>
               <Option type="Map">
-                <Option name="1D-2D Connected line possible breach" type="QString" value="55"/>
+                <Option name="55: 1D-2D Connected line possible breach" type="QString" value="55"/>
               </Option>
               <Option type="Map">
-                <Option name="1D-2D Connected line active breach" type="QString" value="56"/>
+                <Option name="56: 1D-2D Connected line active breach" type="QString" value="56"/>
               </Option>
               <Option type="Map">
-                <Option name="1D-2D Groundwater" type="QString" value="57"/>
+                <Option name="57: 1D-2D Groundwater" type="QString" value="57"/>
               </Option>
               <Option type="Map">
-                <Option name="1D-2D Groundwater" type="QString" value="58"/>
+                <Option name="58: 1D-2D Groundwater" type="QString" value="58"/>
               </Option>
               <Option type="Map">
-                <Option name="2D" type="QString" value="100"/>
+                <Option name="100: 2D" type="QString" value="100"/>
               </Option>
               <Option type="Map">
-                <Option name="2D Crossing obstacle/levee" type="QString" value="101"/>
+                <Option name="101: 2D Crossing obstacle/levee" type="QString" value="101"/>
               </Option>
               <Option type="Map">
-                <Option name="2D Vertical surface/groundwater link" type="QString" value="150"/>
+                <Option name="150: 2D Vertical surface/groundwater link" type="QString" value="150"/>
               </Option>
               <Option type="Map">
-                <Option name="2D Groundwater" type="QString" value="-150"/>
+                <Option name="-150: 2D Groundwater" type="QString" value="-150"/>
               </Option>
               <Option type="Map">
-                <Option name="2D Boundary" type="QString" value="200"/>
+                <Option name="200: 2D Boundary" type="QString" value="200"/>
               </Option>
               <Option type="Map">
-                <Option name="2D Boundary" type="QString" value="300"/>
+                <Option name="300: 2D Boundary" type="QString" value="300"/>
               </Option>
               <Option type="Map">
-                <Option name="2D Boundary" type="QString" value="400"/>
+                <Option name="400: 2D Boundary" type="QString" value="400"/>
               </Option>
               <Option type="Map">
-                <Option name="2D Boundary" type="QString" value="500"/>
+                <Option name="500: 2D Boundary" type="QString" value="500"/>
               </Option>
               <Option type="Map">
                 <Option name="NULL" type="QString" value="{2839923C-8B7D-419E-B84B-CA2FE9B80EC7}"/>

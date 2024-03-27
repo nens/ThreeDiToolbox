@@ -1,5 +1,8 @@
 from collections import namedtuple
-
+from qgis.PyQt.QtGui import QColor
+from qgis.core import QgsGradientColorRamp
+from qgis.core import QgsGradientStop
+from qgis.core import QgsStyle
 
 ColorRampData = namedtuple("ColorRampData", ["name", "colors", "info"])
 
@@ -66,3 +69,49 @@ COLOR_RAMP_OCEAN_CURL = ColorRampData(
 )
 
 COLOR_RAMPS = [COLOR_RAMP_OCEAN_DEEP, COLOR_RAMP_OCEAN_HALINE, COLOR_RAMP_OCEAN_CURL]
+
+
+def color_ramp_from_data(data: ColorRampData):
+    assert len(data.colors) >= 2, "A color ramp needs at least three colors"
+    color1 = QColor(data.colors[0])
+    color2 = QColor(data.colors[-1])
+    stops = []
+    if len(data.colors) > 2:
+        for i, color in enumerate(data.colors[1:-1]):
+            stop = QgsGradientStop((i + 1) / (len(data.colors) - 1), QColor(color))
+            stops.append(stop)
+    ramp = QgsGradientColorRamp(color1=color1, color2=color2, stops=stops)
+    ramp.setInfo(data.info)
+    return ramp
+
+
+def add_color_ramp(data: ColorRampData):
+    """Add color ramp to QGIS or replace if exists"""
+
+    # If ramp with this name already exists, it will be overridden (default QGIS API behaviour)
+    QgsStyle.defaultStyle().addColorRamp(data.name, color_ramp_from_data(data))
+
+
+COLOR_LIST = [
+    (34, 34, 34),
+    (243, 195, 0),
+    (135, 86, 146),
+    (243, 132, 0),
+    (161, 202, 241),
+    (190, 0, 50),
+    (194, 178, 128),
+    (132, 132, 130),
+    (0, 136, 86),
+    (230, 143, 172),
+    (0, 103, 165),
+    (249, 147, 121),
+    (96, 78, 151),
+    (246, 166, 0),
+    (179, 68, 108),
+    (220, 211, 0),
+    (136, 45, 23),
+    (141, 182, 0),
+    (101, 69, 34),
+    (226, 88, 34),
+    (43, 61, 38),
+]

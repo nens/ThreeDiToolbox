@@ -1,48 +1,65 @@
-from qgis.PyQt.QtCore import Qt
-from ThreeDiToolbox.tool_sideview.sideview_view import SideViewDockWidget
-
+from qgis.PyQt.QtCore import Qt, pyqtSlot
+from threedi_results_analysis.tool_sideview.sideview_view import SideViewDockWidget
+from threedi_results_analysis.threedi_plugin_model import ThreeDiGridItem, ThreeDiResultItem
+from threedi_results_analysis.threedi_plugin_tool import ThreeDiPluginTool
 import qgis
+import os
 
 
-class ThreeDiSideView(object):
-    """QGIS Plugin Implementation."""
+class ThreeDiSideView(ThreeDiPluginTool):
 
-    def __init__(self, iface, tdi_root_tool):
-        """Constructor.
+    def __init__(self, iface, model):
+        super().__init__()
 
-        :param iface: An interface instance that will be passed to this class
-            which provides the hook by which you can manipulate the QGIS
-            application at run time.
-        :type iface: QgsInterface
-        :param tdi_root_tool: 3Di root tool instance
-        :type tdi_root_tool: ThreeDiPlugin
-        """
-        # Save reference to the QGIS interface
         self.iface = iface
-        self.tdi_root_tool = tdi_root_tool
-
-        self.icon_path = ":/plugins/ThreeDiToolbox/icons/icon_route.png"
-        self.menu_text = u"Show sideview of 3Di model with results"
-
+        self.model = model
+        self.icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons", "icon_route.png")
+        self.menu_text = u"Side view tool"
         self.dock_widgets = []
         self.widget_nr = 0
-        self._active = False
-
-    @property
-    def active(self):
-        return self._active
-
-    @active.setter
-    def active(self, activate):
-        self._active = activate
-        self.tdi_root_tool.update_slider_enabled_state()
 
     def on_unload(self):
         """
-        on close of graph plugin
+        on close of sideview plugin
         """
         for widget in self.dock_widgets:
             widget.close()
+
+    @pyqtSlot(ThreeDiGridItem)
+    def result_added(self, item: ThreeDiResultItem):
+        for dock_widget in self.dock_widgets:
+            dock_widget.result_added(item)
+
+    @pyqtSlot(ThreeDiGridItem)
+    def result_removed(self, item: ThreeDiResultItem):
+        for dock_widget in self.dock_widgets:
+            dock_widget.result_removed(item)
+
+    @pyqtSlot(ThreeDiGridItem)
+    def result_changed(self, item: ThreeDiResultItem):
+        for dock_widget in self.dock_widgets:
+            dock_widget.result_changed(item)
+
+    @pyqtSlot(ThreeDiGridItem)
+    def grid_added(self, item: ThreeDiGridItem):
+        for dock_widget in self.dock_widgets:
+            dock_widget.grid_added(item)
+        self.action_icon.setEnabled(self.model.number_of_grids() > 0)
+
+    @pyqtSlot(ThreeDiGridItem)
+    def grid_removed(self, item: ThreeDiGridItem):
+        for dock_widget in self.dock_widgets:
+            dock_widget.grid_removed(item)
+
+    @pyqtSlot(ThreeDiGridItem)
+    def grid_changed(self, item: ThreeDiGridItem):
+        for dock_widget in self.dock_widgets:
+            dock_widget.grid_changed(item)
+
+    @pyqtSlot()
+    def update_waterlevels(self):
+        for dock_widget in self.dock_widgets:
+            dock_widget.update_waterlevel()
 
     def on_close_child_widget(self, widget_nr):
         """Cleanup necessary items here when plugin dockwidget is closed"""
@@ -61,19 +78,13 @@ class ThreeDiSideView(object):
 
             del self.dock_widgets[nr]
 
-        self.active = False
-
     def run(self):
-        """
-        Run method that loads and starts the plugin (docked graph widget)
-        """
-        # create the dockwidget
+
         self.widget_nr += 1
         new_widget = SideViewDockWidget(
             self.iface,
-            parent_class=self,
             nr=self.widget_nr,
-            tdi_root_tool=self.tdi_root_tool,
+            model=self.model
         )
         self.dock_widgets.append(new_widget)
 
@@ -83,12 +94,14 @@ class ThreeDiSideView(object):
         # show the dockwidget
         self.iface.addDockWidget(Qt.BottomDockWidgetArea, new_widget)
 
-        # make stack of graph widgets (instead of next to each other)
+        # make stack of dock widgets (instead of next to each other)
         if len(self.dock_widgets) > 1:
             window = qgis.core.QgsApplication.activeWindow()
             window.tabifyDockWidget(self.dock_widgets[0], new_widget)
 
-        # activate timeslider
-        self.active = True
-
         new_widget.show()
+
+        # When loading the first dockwidget, automatically activate first grid
+        if self.widget_nr == 1:  # just added the first
+            if self.model.get_grids():
+                new_widget.grid_selected(0)

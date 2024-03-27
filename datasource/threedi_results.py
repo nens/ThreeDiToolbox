@@ -1,14 +1,12 @@
 from functools import cached_property
 from threedigrid.admin.constants import NO_DATA_VALUE
-from ThreeDiToolbox.datasource.base import BaseDataSource
-from ThreeDiToolbox.datasource.result_constants import LAYER_OBJECT_TYPE_MAPPING
-from ThreeDiToolbox.datasource.result_constants import SUBGRID_MAP_VARIABLES
+from threedi_results_analysis.datasource.result_constants import LAYER_OBJECT_TYPE_MAPPING
+from threedi_results_analysis.datasource.result_constants import SUBGRID_MAP_VARIABLES
 from threedigrid.admin.gridadmin import GridH5Admin
 from threedigrid.admin.gridresultadmin import GridH5AggregateResultAdmin
 from threedigrid.admin.gridresultadmin import GridH5ResultAdmin
 
 import glob
-import h5py
 import logging
 import numpy as np
 import os
@@ -22,12 +20,10 @@ def normalized_object_type(current_layer_name):
     if current_layer_name in LAYER_OBJECT_TYPE_MAPPING:
         return LAYER_OBJECT_TYPE_MAPPING[current_layer_name]
     else:
-        msg = "Unsupported layer: %s." % current_layer_name
-        logger.warning(msg)
         return None
 
 
-class ThreediResult(BaseDataSource):
+class ThreediResult():
     """Provides access to result data of a 3Di simulation
 
     Result data of 3di is stored in netcdf4. Two types of result data
@@ -45,13 +41,13 @@ class ThreediResult(BaseDataSource):
     Some helper methods are available query the result data using a variable
     name (example of variable names: 's1', 'q_cum', 'vol', etc)
 
-    This class also provides for direct access to the data files via h5py.
     However, it is recommended to use threedigrid instead.
 
     """
 
-    def __init__(self, file_path=None):
+    def __init__(self, file_path, h5_path):
         self.file_path = file_path
+        self.h5_path = h5_path
         self._cache = {}
 
     @cached_property
@@ -114,6 +110,14 @@ class ThreediResult(BaseDataSource):
         """
         return self.get_timestamps()
 
+    @cached_property
+    def dt_timestamps(self):
+        """Return the datetime timestamps of the 'results_3di.nc'
+
+        :return 1d np.array containing the timestamps in seconds.
+        """
+        return self.result_admin.nodes.dt_timestamps  # after bug fix
+
     def get_timestamps(self, parameter=None):
         """Return an array of timestamps for the given parameter
 
@@ -156,7 +160,7 @@ class ThreediResult(BaseDataSource):
         elif variable in self.available_aggregation_vars:
             return self.aggregate_result_admin
         else:
-            raise AttributeError("Unknown subgrid or aggregate variable: %s")
+            raise AttributeError(f"Unknown subgrid or aggregate variable: {variable}")
 
     def get_timeseries(
         self, nc_variable, node_id=None, content_pk=None, fill_value=None
@@ -196,81 +200,31 @@ class ThreediResult(BaseDataSource):
         timestamps = timestamps.reshape(-1, 1)  # reshape (n,) to (n, 1)
         return np.hstack([timestamps, values])
 
-    # This method is similar as get_values_by_timestep_nr but does not cache
-    # values. Moreover, it tries to only query the minimum needed data needed.
-    # def get_values_by_timestep_nr_no_caching(
-    #     self, variable, timestamp_idx, node_ids=None
-    # ):
-    #     """Return an array of values of the given variable on the specified timestamp(s)
-    #
-    #     If an array of timestamps is given, a 2d numpy array is returned.
-    #     If index is specified, only the node_ids specified in the index will
-    #     be returned.
-    #
-    #     :param variable: (str) variable name, e.g. 's1', 'q_pump'
-    #     :param timestamp_idx: int or 1d numpy.array of indexes of timestamps
-    #     :param node_ids: 1d numpy.array of node_ids
-    #     :return: 1d/2d numpy.array
-    #     """
-    #     ga = self.get_gridadmin(variable)
-    #     model = ga.get_model_instance_by_field_name(variable)
-    #
-    #     time_slice = None
-    #     if isinstance(timestamp_idx, int):
-    #         time_slice = slice(timestamp_idx, timestamp_idx+1)
-    #         time_index_filter = 0
-    #     elif isinstance(timestamp_idx, np.ndarray):
-    #         # ga.timeseries unfortunately does not allow for index filter on
-    #         # aggregate results, only a slice filter. Thus we load a bit more
-    #         # in memory and apply the index filter at the end.
-    #         time_slice = slice(min(timestamp_idx), max(timestamp_idx) + 1)
-    #         if len(timestamp_idx) == 1:
-    #             time_index_filter = 0
-    #         else:
-    #             time_index_filter = timestamp_idx - min(timestamp_idx)
-    #     result_filter = model.timeseries(indexes=time_slice)
-    #
-    #     if node_ids is None:
-    #         result_filter = result_filter.filter(id__gt=0)
-    #     result = result_filter.get_filtered_field_value(variable)
-    #
-    #     if node_ids is not None:
-    #         # Unfortunately h5py/threedigrid indexing is not as fancy as
-    #         # numpy, i.e. we can't use duplicate indexes/unsorted indexes.
-    #         # Thus we load a bit more in memory as a numpy array and then apply
-    #         # the final indexing with numpy.
-    #         return result[time_index_filter][node_ids]
-    #     else:
-    #         return result[time_index_filter]
-
-    def get_values_by_timestep_nr(
-        self, variable, timestamp_idx, node_ids=None, use_cache=True
-    ):
-        """Return an array of values of the given variable on the specified timestamp(s)
-
-        If only one timestamp is specified, a 1d np.array is returned.  If an
-        array of multiple timestamp_idx is given, a 2d np.array is returned.
-
-        If node_ids is specified, only the node_ids specified in the nodes will
-        be returned.
+    def get_values_by_timestep_nr(self, variable, timestamp_idx, node_ids):
+        """Return an array of values of the given variable on the specified
+        timestamp(s)
 
         :param variable: (str) variable name, e.g. 's1', 'q_pump'
         :param timestamp_idx: int or 1d numpy.array of indexes of timestamps
         :param node_ids: 1d numpy.array of node_ids or None in which case all
             nodes are returned.
-        :param use_cache: (bool)
         :return: 1d/2d numpy.array
+
+        If only one timestamp is specified, a 1d np.array is returned.  If an
+        array of multiple timestamp_idx is given, a 2d np.array is returned.
+
+        If node_ids is specified, only the values corresponding to the
+        specified node_ids will be returned.
+
+        A note about the implementation: 3Di ids start at 1. The numpy array
+        from the GridResultAdmin starts with an extra, meaningless element
+        along the node dimension, so that the node_ids can be used as an index.
         """
         values = self._nc_from_mem(variable)
         if isinstance(timestamp_idx, int):
             timestamp_idx = np.array([timestamp_idx])
 
-        if node_ids is None:
-            # The first element is a trash element which we don't want to return
-            filtered_data = values[timestamp_idx, 1:]
-        else:
-            # node_ids should never be 0 thus the trash element gets filtered out.
-            filtered_data = values[timestamp_idx][:, node_ids]
+        filtered_data = values[timestamp_idx][:, node_ids]
 
         if len(timestamp_idx) == 1:
             # if only one timestamp is specified, an 1d array is returned
@@ -293,7 +247,6 @@ class ThreediResult(BaseDataSource):
         https://docs.python.org/3/library/functools.html#functools.lru_cache
 
         :param variable: (str) variable name, e.g. 's1', 'q_pump'
-        :param use_cache: bool
         :return: 2d numpy array
         """
         if variable in self._cache:
@@ -316,85 +269,45 @@ class ThreediResult(BaseDataSource):
 
     @cached_property
     def gridadmin(self):
-        h5 = find_h5_file(self.file_path)
-        return GridH5Admin(h5)
+        h5 = self.h5_path
+        return GridH5Admin(open(h5, 'rb'))
 
     @cached_property
     def result_admin(self):
-        h5 = find_h5_file(self.file_path)
+        h5 = self.h5_path
         # TODO: there's no FileNotFound try/except here like for
         # aggregates. Richard says that a missing regular result file is just
         # as likely.
-        return GridH5ResultAdmin(h5, self.file_path)
+        file_like_object_h5 = open(h5, 'rb')
+        file_like_object_h5.startswith = lambda x: ''
+        file_like_object_nc = open(self.file_path, 'rb')
+        return GridH5ResultAdmin(file_like_object_h5, file_like_object_nc)
 
     @cached_property
     def aggregate_result_admin(self):
         try:
             # Note: both of these might raise the FileNotFoundError
             agg_path = find_aggregation_netcdf(self.file_path)
-            h5 = find_h5_file(self.file_path)
+            h5 = self.h5_path
         except FileNotFoundError:
             logger.exception("Aggregate result not found")
             return None
-        return GridH5AggregateResultAdmin(h5, agg_path)
+        file_like_object_h5 = open(h5, 'rb')
+        file_like_object_h5.startswith = lambda x: False
+        file_like_object_nc = open(agg_path, 'rb')
+        return GridH5AggregateResultAdmin(file_like_object_h5, file_like_object_nc)
 
-    @cached_property
-    def datasource(self):
+    @property
+    def short_model_slug(self):
+        model_slug = self.gridadmin.model_slug
         try:
-            return h5py.File(self.file_path, "r")
-        except IOError:
-            # TODO: a non-existing file raises an OSError, not an IOError!
-            logger.exception("Datasource %s could not be opened", self.file_path)
-            raise
-
-    @cached_property
-    def ds_aggregation(self):
-        """The aggregation netcdf dataset."""
-        # Note: we don't want module level imports of dynamically loaded
-        # libraries because importing them will cause files to be held open
-        # which cause trouble when updating the plugin. Therefore we delay
-        # the import as much as possible.
-
-        # Load aggregation netcdf
-        try:
-            aggregation_netcdf_file = find_aggregation_netcdf(self.file_path)
-        except FileNotFoundError:
-            logger.error("Could not find the aggregation netcdf.")
-            return None
-
-        logger.info("Opening aggregation netcdf: %s" % aggregation_netcdf_file)
-        return h5py.File(aggregation_netcdf_file, mode="r")
-
-
-def find_h5_file(netcdf_file_path):
-    """An ad-hoc way to get the h5_file.
-
-    We assume the h5_file file is in one of the following locations (note:
-    this order is also the searching order):
-
-    1) . (in the same dir as the netcdf)
-    2) ../preprocessed
-
-    relative to the netcdf file and has extension '.h5'
-
-    Args:
-        netcdf_file_path: path to the result netcdf
-
-    Returns:
-        h5_file path
-
-    Raises:
-        FileNotFoundError if no file can be found
-    """
-    pattern = "*.h5"
-    result_dir = os.path.dirname(netcdf_file_path)
-    inpdir = os.path.join(result_dir, os.path.pardir, "preprocessed")
-
-    for directory in [result_dir, inpdir]:
-        h5_files = glob.glob(os.path.join(directory, pattern))
-        if h5_files:
-            return h5_files[0]
-    raise FileNotFoundError("'.h5' file not found relative to %s." % result_dir)
+            return model_slug.rsplit("-", 1)[0]
+        except Exception:
+            logger.exception(
+                "TODO: overly broad exception while splitting model_slug. "
+                "Using model_name"
+            )
+            return self.gridadmin.model_name
 
 
 def find_aggregation_netcdf(netcdf_file_path):

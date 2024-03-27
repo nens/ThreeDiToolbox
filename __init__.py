@@ -9,10 +9,11 @@ there.
 
 """
 from pathlib import Path
-from ThreeDiToolbox import dependencies
-
 import faulthandler
 import sys
+
+from . import dependencies
+from .utils.qlogging import setup_logging
 
 
 #: Handy constant for building relative paths.
@@ -23,9 +24,6 @@ PLUGIN_DIR = Path(__file__).parent
 # uses by default.
 if sys.stderr is not None and hasattr(sys.stderr, "fileno"):
     faulthandler.enable()
-
-print('Ensuring dependencies are installed')
-dependencies.ensure_everything_installed()
 
 
 def enable_high_dpi_scaling():
@@ -40,21 +38,21 @@ def enable_high_dpi_scaling():
 
 
 def classFactory(iface):
-    """Return ThreeDiToolbox class from file ThreeDiToolbox.
+    """Return plugin class.
 
     In addition, we set up python logging (see
-    :py:mod:`ThreeDiToolbox.utils.qlogging`).
+    :py:mod:`threedi_results_analysis.utils.qlogging`).
 
     args:
         iface (QgsInterface): A QGIS interface instance.
 
     """
-    from ThreeDiToolbox.utils.qlogging import setup_logging
-
-    enable_high_dpi_scaling()
     setup_logging()
-    dependencies.check_importability()
+    enable_high_dpi_scaling()
 
     from .threedi_plugin import ThreeDiPlugin
-
     return ThreeDiPlugin(iface)
+
+
+dependencies.ensure_everything_installed()
+dependencies.check_importability()

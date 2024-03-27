@@ -48,14 +48,7 @@ Dependency = namedtuple("Dependency", ["name", "package", "constraint", "tar"])
 DEPENDENCIES = [
     Dependency("SQLAlchemy", "sqlalchemy", "==2.0.6", False),
     Dependency("GeoAlchemy2", "geoalchemy2", "==0.13.*", False),
-    Dependency("lizard-connector", "lizard_connector", "==0.7.3", False),
     Dependency("pyqtgraph", "pyqtgraph", ">=0.13.2", False),
-    Dependency("threedigrid", "threedigrid", "==2.0.*", False),
-    Dependency("threedi-schema", "threedi_schema", "==0.217.*", False),
-    Dependency("threedi-modelchecker", "threedi_modelchecker", "==2.4.*", False),
-    Dependency("threedidepth", "threedidepth", "==0.6.1", False),
-    Dependency("click", "click", ">=8.0", False),
-    Dependency("alembic", "alembic", "==1.8.*", False),
     Dependency(
         "importlib-resources", "importlib_resources", "", False
     ),  # backward compat. alembic
@@ -64,7 +57,14 @@ DEPENDENCIES = [
     ),  # backward compat. alembic
     Dependency("Mako", "mako", "", False),
     Dependency("cftime", "cftime", ">=1.5.0", False),  # threedigrid[results]
+    Dependency("alembic", "alembic", "==1.8.*", False),
+    Dependency("threedigrid", "threedigrid", "==2.2.*", False),
+    Dependency("threedi-schema", "threedi_schema", "==0.217.*", False),
+    Dependency("threedi-modelchecker", "threedi_modelchecker", "==2.5.*", False),
+    Dependency("threedidepth", "threedidepth", "==0.6.3", False),
+    Dependency("click", "click", ">=8.0", False),
     Dependency("packaging", "packaging", "", False),
+    Dependency("typing-extensions", "typing_extensions", ">=4.2.0", False),
     Dependency(
         "colorama", "colorama", "", False
     ),  # dep of click and threedi-modelchecker (windows)
@@ -75,13 +75,9 @@ DEPENDENCIES = [
     Dependency("hydxlib", "hydxlib", "==1.5.1", False),
     Dependency("h5netcdf", "h5netcdf", "", False),
     Dependency("greenlet", "greenlet", "!=0.4.17", False),
-    Dependency("typing-extensions", "typing_extensions", ">=4.2.0", False),
+    Dependency("threedi-mi-utils", "threedi_mi_utils", "==0.1.2", False),
 ]
 
-# Dependencies that contain compiled extensions for windows platform
-WINDOWS_PLATFORM_DEPENDENCIES = [
-    Dependency("scipy", "scipy", "==1.6.2", False),
-]
 # On Windows, the hdf5 binary and thus h5py version depends on the QGis version
 # QGis upgraded from hdf5 == 1.10.7 to hdf5 == 1.14.0 in QGis 3.28.6
 QGIS_VERSION = Qgis.QGIS_VERSION_INT
@@ -91,6 +87,12 @@ if QGIS_VERSION < 32806 and platform.system() == "Windows":
 else:
     SUPPORTED_HDF5_VERSIONS = ["1.14.0"]
     H5PY_DEPENDENCY = Dependency("h5py", "h5py", "==3.8.0", True)
+
+WINDOWS_PLATFORM_DEPENDENCIES = [Dependency("scipy", "scipy", "==1.6.2", False)]
+if QGIS_VERSION >= 32811 and platform.system() == "Windows":
+    WINDOWS_PLATFORM_DEPENDENCIES = [
+        Dependency("scipy", "scipy", "==1.10.1", True),
+    ]
 
 # If you add a dependency, also adjust external-dependencies/populate.sh
 INTERESTING_IMPORTS = ["numpy", "osgeo", "pip", "setuptools"]
@@ -166,11 +168,11 @@ def ensure_everything_installed():
         if restart_required or not restart_marker.exists():
             if _is_windows():
                 # We always want to restart when deps are missing
-                from ThreeDiToolbox.utils.user_messages import pop_up_info
+                from threedi_results_analysis.utils.user_messages import pop_up_info
 
                 pop_up_info(
                     "Please restart QGIS to complete the installation process of "
-                    "3Di Toolbox.",
+                    "3Di Results Analysis.",
                     title="Restart required",
                 )
                 restart_marker.touch()

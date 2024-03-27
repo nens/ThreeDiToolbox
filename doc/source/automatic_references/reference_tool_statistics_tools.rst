@@ -1,7 +1,7 @@
 tool_statistics/tools/
 ====================================================================================================
 
-tool_statistics.tools.statistics
+tool_statistics.statistics
 ----------------------------------------------------------------------------------------------------
 
-.. automodule:: ThreeDiToolbox.tool_statistics.tools.statistics
+.. automodule:: ThreeDiToolbox.tool_statistics.statistics

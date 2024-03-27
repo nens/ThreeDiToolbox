@@ -12,19 +12,19 @@ from sqlalchemy.orm import load_only
 
 from qgis.core import Qgis
 
-from ThreeDiToolbox.sql_models.constants import Constants
-from ThreeDiToolbox.sql_models.model_schematisation import BoundaryCondition1D
-from ThreeDiToolbox.sql_models.model_schematisation import ConnectionNode
-from ThreeDiToolbox.sql_models.model_schematisation import CrossSectionDefinition
-from ThreeDiToolbox.sql_models.model_schematisation import ImperviousSurface
-from ThreeDiToolbox.sql_models.model_schematisation import ImperviousSurfaceMap
-from ThreeDiToolbox.sql_models.model_schematisation import Manhole
-from ThreeDiToolbox.sql_models.model_schematisation import Orifice
-from ThreeDiToolbox.sql_models.model_schematisation import Pipe
-from ThreeDiToolbox.sql_models.model_schematisation import Pumpstation
-from ThreeDiToolbox.sql_models.model_schematisation import Weir
-from ThreeDiToolbox.processing.deps.sufhyd.sufhyd_importer import SufhydReader
-from ThreeDiToolbox.utils.user_messages import messagebar_message
+from threedi_results_analysis.processing.deps.sql_models.constants import Constants
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import BoundaryCondition1D
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import ConnectionNode
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import CrossSectionDefinition
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import ImperviousSurface
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import ImperviousSurfaceMap
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import Manhole
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import Orifice
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import Pipe
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import Pumpstation
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import Weir
+from threedi_results_analysis.processing.deps.sufhyd.sufhyd_importer import SufhydReader
+from threedi_results_analysis.utils.user_messages import messagebar_message
 from threedi_schema import errors
 
 logger = logging.getLogger(__name__)
@@ -162,7 +162,7 @@ class Importer(object):
 
             msg = (
                 "{errors} errors and {warnings} warnings, see qgis log for "
-                "the summary and {log_file} for the full log".format(
+                "the summary and {log_file.name} for the full log".format(
                     errors=self.log.level_count.get(logging.ERROR, 0),
                     warnings=self.log.level_count.get(logging.WARNING, 0),
                     log_file=log_file,

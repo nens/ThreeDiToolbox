@@ -1,6 +1,6 @@
 from pathlib import Path
-from ThreeDiToolbox import dependencies
-from ThreeDiToolbox.dependencies import Dependency
+from threedi_results_analysis import dependencies
+from threedi_results_analysis.dependencies import Dependency
 
 import mock
 import os
@@ -46,10 +46,10 @@ def test_install_dependencies(tmpdir):
     small_dependencies = [
         dependency
         for dependency in dependencies.DEPENDENCIES
-        if dependency.name == "lizard-connector"
+        if dependency.name == "threedi-schema"
     ]
     dependencies._install_dependencies(small_dependencies, target_dir=tmpdir)
-    installed_directory = Path(tmpdir) / "lizard_connector"
+    installed_directory = Path(tmpdir) / "threedi_schema"
     assert installed_directory.exists()
     # Cleanup
     dependencies.ensure_everything_installed()
@@ -81,7 +81,7 @@ def test_generate_constraints_txt(tmpdir):
     target_dir = Path(tmpdir)
     dependencies.generate_constraints_txt(target_dir=target_dir)
     generated_file = target_dir / "constraints.txt"
-    assert "lizard-connector" in generated_file.read_text()
+    assert "threedi-schema" in generated_file.read_text()
 
 
 def test_dependencies_target_dir_smoke():

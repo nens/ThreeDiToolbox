@@ -1,8 +1,8 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis simplifyDrawingTol="1" version="3.10.10-A Coruña" labelsEnabled="0" simplifyLocal="1" readOnly="0" simplifyDrawingHints="1" simplifyMaxScale="1" minScale="1e+08" simplifyAlgorithm="0" styleCategories="AllStyleCategories" hasScaleBasedVisibilityFlag="0" maxScale="0">
+<qgis simplifyDrawingTol="1" version="3.10.10-A Coruña" labelsEnabled="0" simplifyLocal="1" readOnly="1" simplifyDrawingHints="1" simplifyMaxScale="1" minScale="1e+08" simplifyAlgorithm="0" styleCategories="AllStyleCategories" hasScaleBasedVisibilityFlag="0" maxScale="0">
   <flags>
     <Identifiable>1</Identifiable>
-    <Removable>1</Removable>
+    <Removable>0</Removable>
     <Searchable>1</Searchable>
   </flags>
   <renderer-v2 forceraster="0" type="categorizedSymbol" attr="location" enableorderby="0" symbollevels="0">
@@ -142,13 +142,6 @@
         </config>
       </editWidget>
     </field>
-    <field name="node_type_description">
-      <editWidget type="TextEdit">
-        <config>
-          <Option/>
-        </config>
-      </editWidget>
-    </field>
     <field name="location">
       <editWidget type="TextEdit">
         <config>
@@ -174,17 +167,15 @@
   <aliases>
     <alias field="id" index="0" name=""/>
     <alias field="node_type" index="1" name=""/>
-    <alias field="node_type_description" index="2" name=""/>
-    <alias field="location" index="3" name=""/>
-    <alias field="catchment_id" index="4" name=""/>
-    <alias field="from_polygon" index="5" name=""/>
+    <alias field="location" index="2" name=""/>
+    <alias field="catchment_id" index="3" name=""/>
+    <alias field="from_polygon" index="4" name=""/>
   </aliases>
   <excludeAttributesWMS/>
   <excludeAttributesWFS/>
   <defaults>
     <default field="id" expression="" applyOnUpdate="0"/>
     <default field="node_type" expression="" applyOnUpdate="0"/>
-    <default field="node_type_description" expression="" applyOnUpdate="0"/>
     <default field="location" expression="" applyOnUpdate="0"/>
     <default field="catchment_id" expression="" applyOnUpdate="0"/>
     <default field="from_polygon" expression="" applyOnUpdate="0"/>
@@ -192,7 +183,6 @@
   <constraints>
     <constraint field="id" constraints="0" exp_strength="0" unique_strength="0" notnull_strength="0"/>
     <constraint field="node_type" constraints="0" exp_strength="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="node_type_description" constraints="0" exp_strength="0" unique_strength="0" notnull_strength="0"/>
     <constraint field="location" constraints="0" exp_strength="0" unique_strength="0" notnull_strength="0"/>
     <constraint field="catchment_id" constraints="0" exp_strength="0" unique_strength="0" notnull_strength="0"/>
     <constraint field="from_polygon" constraints="0" exp_strength="0" unique_strength="0" notnull_strength="0"/>
@@ -200,7 +190,6 @@
   <constraintExpressions>
     <constraint field="id" exp="" desc=""/>
     <constraint field="node_type" exp="" desc=""/>
-    <constraint field="node_type_description" exp="" desc=""/>
     <constraint field="location" exp="" desc=""/>
     <constraint field="catchment_id" exp="" desc=""/>
     <constraint field="from_polygon" exp="" desc=""/>
@@ -217,7 +206,6 @@
       <column hidden="0" width="-1" name="from_polygon" type="field"/>
       <column hidden="0" width="-1" name="location" type="field"/>
       <column hidden="0" width="-1" name="node_type" type="field"/>
-      <column hidden="0" width="-1" name="node_type_description" type="field"/>
     </columns>
   </attributetableconfig>
   <conditionalstyles>
@@ -254,7 +242,6 @@ def my_form_open(dialog, layer, feature):
     <field name="id" editable="1"/>
     <field name="location" editable="1"/>
     <field name="node_type" editable="1"/>
-    <field name="node_type_description" editable="1"/>
   </editable>
   <labelOnTop>
     <field name="catchment_id" labelOnTop="0"/>
@@ -262,7 +249,6 @@ def my_form_open(dialog, layer, feature):
     <field name="id" labelOnTop="0"/>
     <field name="location" labelOnTop="0"/>
     <field name="node_type" labelOnTop="0"/>
-    <field name="node_type_description" labelOnTop="0"/>
   </labelOnTop>
   <widgets/>
   <previewExpression>"id"</previewExpression>

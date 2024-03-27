@@ -19,15 +19,15 @@ from hydxlib.scripts import run_import_export
 from hydxlib.scripts import write_logging_to_file
 from pathlib import Path
 from sqlalchemy.exc import OperationalError, DatabaseError
-from ThreeDiToolbox.processing.deps.sufhyd.import_sufhyd_main import Importer
-from ThreeDiToolbox.processing.deps.guess_indicator import guess_indicators_utils
+from threedi_results_analysis.processing.deps.sufhyd.import_sufhyd_main import Importer
+from threedi_results_analysis.processing.deps.guess_indicator import guess_indicators_utils
 
 from threedi_schema import ThreediDatabase
 from threedi_modelchecker import ThreediModelChecker
 from threedi_schema import errors
-from ThreeDiToolbox.processing.download_hydx import download_hydx
+from threedi_results_analysis.processing.download_hydx import download_hydx
 
-from ThreeDiToolbox.utils.utils import backup_sqlite
+from threedi_results_analysis.utils.utils import backup_sqlite
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (
     QgsProject,
@@ -83,8 +83,7 @@ class MigrateAlgorithm(QgsProcessingAlgorithm):
             shutil.rmtree(os.path.dirname(backup_filepath))
         except errors.UpgradeFailedError:
             feedback.pushWarning(
-                "There are errors in the spatialite. Please re-open this file in QGIS 3.16, run the model checker and "
-                "fix error messages. Then attempt to upgrade again. For questions please contact the servicedesk."
+                "The spatialite database schema cannot be migrated to the current version. Please contact the service desk for assistance."
             )
             return {self.OUTPUT: None}
         success = True

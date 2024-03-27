@@ -34,7 +34,6 @@ def main():
             or filename.startswith("help")
             or filename.startswith("deps")
             or "/test" in filename
-            or "resources.py" in filename
         )
     ]
     file_results, total_results = coverage.get_docstring_coverage(

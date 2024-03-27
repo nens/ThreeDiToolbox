@@ -1,27 +1,14 @@
-from qgis.core import QgsFeature
-from qgis.core import QgsField
-from qgis.core import QgsGeometry
-from qgis.core import QgsPointXY
-from qgis.core import QgsVectorLayer
-from qgis.PyQt.QtCore import QVariant
 from threedigrid.admin import gridresultadmin
 from threedigrid.admin.constants import NO_DATA_VALUE
-from ThreeDiToolbox.datasource import base
-from ThreeDiToolbox.datasource.spatialite import Spatialite
-from ThreeDiToolbox.datasource.threedi_results import find_aggregation_netcdf
-from ThreeDiToolbox.datasource.threedi_results import find_h5_file
-from ThreeDiToolbox.datasource.threedi_results import normalized_object_type
-from ThreeDiToolbox.datasource.threedi_results import ThreediResult
-from ThreeDiToolbox.tests.utilities import ensure_qgis_app_is_initialized
-from ThreeDiToolbox.tests.utilities import TemporaryDirectory
+from threedi_results_analysis.datasource.threedi_results import find_aggregation_netcdf
+from threedi_results_analysis.datasource.threedi_results import normalized_object_type
+from threedi_results_analysis.datasource.threedi_results import ThreediResult
+from threedi_results_analysis.tests.utilities import TemporaryDirectory
 
-import h5py
 import mock
 import numpy as np
 import os
 import pytest
-import shutil
-import tempfile
 import unittest
 
 
@@ -30,83 +17,18 @@ spatialite_datasource_path = os.path.join(
 )
 
 
-class TestSpatialiteDataSource(unittest.TestCase):
-    def setUp(self):
-        ensure_qgis_app_is_initialized()
-        self.tmp_directory = tempfile.mkdtemp()
-        self.spatialite_path = os.path.join(self.tmp_directory, "test.sqlite")
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp_directory)
-
-    def test_create_empty_table(self):
-        spl = Spatialite(self.spatialite_path + "1")
-
-        layer = spl.create_empty_layer(
-            "table_one", fields=["id INTEGER", "name TEXT NULLABLE"]
-        )
-        # test table is created
-        self.assertIsNotNone(layer)
-
-        self.assertTrue("table_one" in [c[1] for c in spl.getTables()])
-        self.assertFalse("table_two" in spl.getTables())
-
-        # test adding data
-        self.assertEqual(layer.featureCount(), 0)
-        pr = layer.dataProvider()
-
-        feat = QgsFeature()
-        feat.setAttributes([1, "test"])
-        feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(1.0, 2.0)))
-
-        pr.addFeatures([feat])
-        self.assertEqual(layer.featureCount(), 1)
-
-    def test_import_layer(self):
-        spl = Spatialite(self.spatialite_path + "3")
-
-        # create memory layer
-        uri = "Point?crs=epsg:4326&index=yes"
-        layer = QgsVectorLayer(uri, "test_layer", "memory")
-        pr = layer.dataProvider()
-
-        # add fields
-        pr.addAttributes(
-            [
-                QgsField("id", QVariant.Int),
-                QgsField("col2", QVariant.Double),
-                QgsField("col3", QVariant.String, None, 20),
-                QgsField("col4", QVariant.TextFormat),
-            ]
-        )
-        # tell the vector layer to fetch changes from the provider
-        layer.updateFields()
-        pr = layer.dataProvider()
-        feat = QgsFeature()
-        feat.setAttributes([1, "test"])
-        feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(1.0, 2.0)))
-        pr.addFeatures([feat])
-
-        spl_layer = spl.import_layer(layer, "table_one", "id")
-
-        self.assertIsNotNone(spl_layer)
-        self.assertTrue("table_one" in [c[1] for c in spl.getTables()])
-        # TODO 2021-03-31: re-enable the following line and fix the test!
-        # self.assertEqual(layer.featureCount(), 1)
-
-
 class TestNetcdfGroundwaterDataSource(unittest.TestCase):
     def test_constructor(self):
         """Test empty constructor."""
-        ThreediResult()
+        ThreediResult("bla.nc", "bla.h5")
 
     @mock.patch(
-        "ThreeDiToolbox.datasource.threedi_results.ThreediResult.available_subgrid_map_vars",
+        "threedi_results_analysis.datasource.threedi_results.ThreediResult.available_subgrid_map_vars",
         ["s1"],
     )
-    @mock.patch("ThreeDiToolbox.datasource.threedi_results.ThreediResult.result_admin")
+    @mock.patch("threedi_results_analysis.datasource.threedi_results.ThreediResult.result_admin")
     def test_get_timeseries(self, result_admin_mock):
-        threedi_result = ThreediResult()
+        threedi_result = ThreediResult("bla.nc", "bla.h5")
         threedi_result.get_timeseries("s1", 3)
 
     def test_find_agg_fail(self):
@@ -222,15 +144,6 @@ def test_get_model_instance_by_field_name(threedi_result):
     gr.get_model_instance_by_field_name("q_cum")
 
 
-def test_get_values_by_timestep_nr(threedi_result):
-    with mock.patch.object(threedi_result, "_nc_from_mem") as data:
-        trash_elements = np.zeros((3, 1))
-        variable_data = np.array(range(9)).reshape(3, 3)
-        data.return_value = np.hstack((trash_elements, variable_data))
-        values = threedi_result.get_values_by_timestep_nr("s1", 2)
-        np.testing.assert_equal(values, np.array([6, 7, 8]))
-
-
 def test_get_values_by_timestep_nr_with_index(threedi_result):
     with mock.patch.object(threedi_result, "_nc_from_mem") as data:
         data.return_value = np.array(range(9)).reshape(3, 3)
@@ -246,7 +159,7 @@ def test_get_values_by_timestep_nr_with_multipe_timestamps(threedi_result):
         variable_data = np.array(range(9)).reshape(3, 3)
         data.return_value = np.hstack((trash_elements, variable_data))
         values = threedi_result.get_values_by_timestep_nr(
-            "s1", timestamp_idx=np.array([0, 2])
+            "s1", timestamp_idx=np.array([0, 2]), node_ids=np.array([1, 2, 3])
         )
         np.testing.assert_equal(values, np.array([[0, 1, 2], [6, 7, 8]]))
 
@@ -393,40 +306,6 @@ def test_available_vars(threedi_result):
     assert set(actual) == expected
 
 
-def test_base_data_source_is_abstract():
-    # A concrete class needs to implement the abstract properties and methods
-    # defined in the abstract base class.
-    class ConcreteDataSource(base.BaseDataSource):
-        pass
-
-    with pytest.raises(TypeError):
-        # TypeError: Can't instantiate abstract class ConcreteDataSource with
-        # abstract methods __init__, available_aggregation_vars, etc
-        ConcreteDataSource()
-
-
-def test_base_data_source_can_be_implemented():
-    class ConcreteDataSource(base.BaseDataSource):
-        available_subgrid_map_vars = None
-        available_aggregation_vars = None
-
-        def __init__(self):
-            pass
-
-        def get_timeseries(self):
-            # Note: the abstract base class mechanism doesn't check the signature!
-            pass  # pragma: no cover
-
-        def get_timestamps(self):
-            pass  # pragma: no cover
-
-        def get_values_by_timestep_nr(self):
-            pass  # pragma: no cover
-
-    instance = ConcreteDataSource()
-    assert instance
-
-
 def test_normalized_object_type1():
     assert normalized_object_type("sewerage_manhole") == "manhole"
 
@@ -438,17 +317,3 @@ def test_normalized_object_type2():
 def test_aggregate_result_admin_file_missing(threedi_result):
     threedi_result.file_path = "reinout.txt"
     assert threedi_result.aggregate_result_admin is None
-
-
-def test_ds_aggregation(threedi_result):
-    assert isinstance(threedi_result.ds_aggregation, h5py.File)
-
-
-def test_ds_aggregation_file_missing(threedi_result):
-    threedi_result.file_path = "reinout.txt"
-    assert threedi_result.ds_aggregation is None
-
-
-def test_find_h5_file_not_found():
-    with pytest.raises(FileNotFoundError):
-        find_h5_file("/does/not/exist/")

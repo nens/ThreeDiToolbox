@@ -1,4 +1,4 @@
-from ThreeDiToolbox.threedi_plugin import About
+from threedi_results_analysis.threedi_plugin import About
 
 import mock
 

@@ -1,17 +1,24 @@
 # See https://docs.qgis.org/3.10/en/docs/pyqgis_developer_cookbook/processing.html
 from qgis.core import QgsProcessingProvider
 from qgis.PyQt.QtGui import QIcon
-from ThreeDiToolbox.processing.dwf_calculation_algorithm import DWFCalculatorAlgorithm
-from ThreeDiToolbox.processing.gpkg_conversion_algorithm import ThreeDiConvertToGpkgAlgorithm
-from ThreeDiToolbox.processing.grid_creation_algorithm import ThreeDiGenerateCompGridAlgorithm
-from ThreeDiToolbox.processing.schematisation_algorithms import (
+from threedi_results_analysis.processing.dwf_calculation_algorithm import DWFCalculatorAlgorithm
+from threedi_results_analysis.processing.gpkg_conversion_algorithm import ThreeDiConvertToGpkgAlgorithm
+from threedi_results_analysis.processing.grid_creation_algorithm import ThreeDiGenerateCompGridAlgorithm
+from threedi_results_analysis.processing.cross_sectional_discharge_algorithm import CrossSectionalDischargeAlgorithm
+from threedi_results_analysis.processing.leak_detector_algorithms import (
+    DetectLeakingObstaclesAlgorithm,
+    DetectLeakingObstaclesWithDischargeThresholdAlgorithm,
+)
+from threedi_results_analysis.processing.schematisation_algorithms import (
     CheckSchematisationAlgorithm,
     MigrateAlgorithm,
     ImportSufHydAlgorithm,
     GuessIndicatorAlgorithm,
     ImportHydXAlgorithm,
 )
-from ThreeDiToolbox.processing.threedidepth_algorithms import ThreediDepthAlgorithm, ThreediMaxDepthAlgorithm
+
+from threedi_results_analysis.processing.threedidepth_algorithms import ThreediDepthAlgorithm, ThreediMaxDepthAlgorithm
+
 import os
 
 
@@ -29,6 +36,9 @@ class ThreediProvider(QgsProcessingProvider):
         self.addAlgorithm(ThreeDiGenerateCompGridAlgorithm())
         self.addAlgorithm(ImportSufHydAlgorithm())
         self.addAlgorithm(GuessIndicatorAlgorithm())
+        self.addAlgorithm(CrossSectionalDischargeAlgorithm())
+        self.addAlgorithm(DetectLeakingObstaclesAlgorithm())
+        self.addAlgorithm(DetectLeakingObstaclesWithDischargeThresholdAlgorithm())
 
     def id(self, *args, **kwargs):
         """The ID of your plugin, used for identifying the provider.

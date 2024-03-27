@@ -2,9 +2,8 @@ from geoalchemy2.types import Geometry
 from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import String
+from threedi_results_analysis.utils.threedi_database import ThreediDatabase
 from sqlalchemy.orm import declarative_base
-from ThreeDiToolbox.utils.threedi_database import ThreediDatabase
-
 import logging
 import os.path
 import tempfile

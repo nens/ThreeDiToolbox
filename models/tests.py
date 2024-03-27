@@ -1,6 +1,6 @@
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QColor
-from ThreeDiToolbox.models import base_fields
+from threedi_results_analysis.models import base_fields
 
 import mock
 

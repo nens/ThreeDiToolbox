@@ -35,7 +35,7 @@ from threedidepth.calculate import MODE_CONSTANT_S1
 from threedidepth.calculate import MODE_LINEAR
 from threedidepth.calculate import MODE_LIZARD
 from threedidepth.calculate import MODE_LIZARD_S1
-from ThreeDiToolbox.utils.user_messages import pop_up_info
+from threedi_results_analysis.utils.user_messages import pop_up_info
 
 import h5py
 import logging
@@ -109,7 +109,7 @@ class TimeSliderWidget(BASE, WIDGET):
             value = self.timestamps[index]
         else:
             value = 0
-        lcd_value = format_timestep_value(value)
+        lcd_value = format_timestep_value(value=value, drop_leading_zero=True)
         self.lcdNumber.display(lcd_value)
 
     def reset(self):
@@ -122,13 +122,13 @@ class TimeSliderWidget(BASE, WIDGET):
 
     def new_file_event(self, file_path):
         """New file has been selected by the user. Try to read in the timestamps from the file."""
-        if file_path == "":
+        if not file_path or not os.path.isfile(file_path):
             self.reset()
             return
 
         try:
             with h5py.File(file_path, "r") as results:
-                timestamps = results["time"].value
+                timestamps = results["time"][()]
                 self.set_timestamps(timestamps)
         except Exception as e:
             logger.exception(e)
@@ -173,13 +173,13 @@ class TimeStepsCombobox(QComboBox):
 
     def new_file_event(self, file_path):
         """New file has been selected by the user. Try to read in the timestamps from the file."""
-        if file_path == "":
+        if not file_path or not os.path.isfile(file_path):
             self.clear()
             return
 
         try:
             with h5py.File(file_path, "r") as results:
-                timestamps = results["time"].value
+                timestamps = results["time"][()]
                 self.populate_timestamps(timestamps)
         except Exception as e:
             logger.exception(e)
@@ -497,9 +497,14 @@ class Progress:
             raise CancelError()
 
 
-def format_timestep_value(value: float) -> str:
+def format_timestep_value(value: float, drop_leading_zero: bool = False) -> str:
     days, seconds = divmod(int(value), 24 * 60 * 60)
     hours, seconds = divmod(seconds, 60 * 60)
     minutes, seconds = divmod(seconds, 60)
+
+    if days == 0 and drop_leading_zero:
+        formatted_display = "{:02d}:{:02d}".format(hours, minutes)
+        return formatted_display
+
     formatted_display = "{:d} {:02d}:{:02d}".format(days, hours, minutes)
     return formatted_display

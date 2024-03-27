@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - master
+      - refactor
     tags:
       - "*"
   pull_request:

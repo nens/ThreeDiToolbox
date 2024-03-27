@@ -1,14 +1,14 @@
 from pathlib import Path
 from sqlalchemy import update
-from ThreeDiToolbox.sql_models.constants import Constants
-from ThreeDiToolbox.sql_models.model_schematisation import BoundaryCondition1D
-from ThreeDiToolbox.sql_models.model_schematisation import ConnectionNode
-from ThreeDiToolbox.sql_models.model_schematisation import Manhole
-from ThreeDiToolbox.sql_models.model_schematisation import Pipe
-from ThreeDiToolbox.sql_models.model_schematisation import Pumpstation
-from ThreeDiToolbox.tests.test_init import TEST_DATA_DIR
-from ThreeDiToolbox.processing.deps.guess_indicator import guess_indicators_utils
-from ThreeDiToolbox.utils.threedi_database import ThreediDatabase
+from threedi_results_analysis.processing.deps.sql_models.constants import Constants
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import BoundaryCondition1D
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import ConnectionNode
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import Manhole
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import Pipe
+from threedi_results_analysis.processing.deps.sql_models.model_schematisation import Pumpstation
+from threedi_results_analysis.tests.test_init import TEST_DATA_DIR
+from threedi_results_analysis.processing.deps.guess_indicator import guess_indicators_utils
+from threedi_results_analysis.utils.threedi_database import ThreediDatabase
 
 import pytest
 import shutil

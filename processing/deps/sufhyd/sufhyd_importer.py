@@ -1,6 +1,6 @@
 # (c) Nelen & Schuurmans, see LICENSE.rst.
-from ThreeDiToolbox.sql_models.constants import Constants
-from ThreeDiToolbox.processing.deps.sufhyd.turtleurbanclasses import (
+from threedi_results_analysis.processing.deps.sql_models.constants import Constants
+from threedi_results_analysis.processing.deps.sufhyd.turtleurbanclasses import (
     HydroObjectFactory,
 )
 

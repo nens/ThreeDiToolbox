@@ -2,10 +2,10 @@
 import numpy as np
 import networkx as nx
 from osgeo import ogr
-from .result_aggregation.base import time_aggregate
-from .result_aggregation.aggregation_classes import Aggregation
-from .result_aggregation.constants import AGGREGATION_VARIABLES, AGGREGATION_METHODS, AggregationSign
-from .result_aggregation.threedigrid_ogr import threedigrid_to_ogr
+from threedi_results_analysis.utils.threedi_result_aggregation.base import time_aggregate
+from threedi_results_analysis.utils.threedi_result_aggregation.aggregation_classes import Aggregation
+from threedi_results_analysis.utils.threedi_result_aggregation.constants import AGGREGATION_VARIABLES, AGGREGATION_METHODS, AggregationSign
+from threedi_results_analysis.utils.threedi_result_aggregation.threedigrid_ogr import threedigrid_to_ogr
 from threedigrid.admin.gridresultadmin import GridH5ResultAdmin
 
 
