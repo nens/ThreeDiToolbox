@@ -142,7 +142,7 @@ class Graph3Di:
             and isinstance(self.aggregation, Aggregation)
         ):
             self._aggregate = time_aggregate(
-                nodes_or_lines=self.lines_subset,
+                threedigrid_object=self.lines_subset,
                 start_time=self.start_time,
                 end_time=self.end_time,
                 aggregation=self.aggregation,

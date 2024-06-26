@@ -7,6 +7,7 @@ import argparse
 import warnings
 from typing import List, Tuple, Union, Dict
 
+from threedigrid.admin.gridadmin import GridH5Admin
 from threedigrid.admin.gridresultadmin import GridH5ResultAdmin
 from threedigrid.admin.nodes.models import Nodes, Cells
 from threedigrid.admin.lines.models import Lines
@@ -22,8 +23,7 @@ from .constants import (
     AGGREGATION_VARIABLES,
     NON_TS_REDUCING_KCU,
     NP_OGR_DTYPES,
-    THRESHOLD_DRAIN_LEVEL,
-    THRESHOLD_EXCHANGE_LEVEL,
+    EXCHANGE_LEVEL_1D2D,
 )
 from .aggregation_classes import (
     Aggregation,
@@ -42,6 +42,35 @@ from .threedigrid_ogr import threedigrid_to_ogr
 
 warnings.filterwarnings("ignore")
 ogr.UseExceptions()
+
+
+def get_threshold_attributes(gridadmin: Union[GridH5Admin, GridH5ResultAdmin], var_type: int) -> List[tuple]:
+    """
+    Get a list of attributes that can be used as threshold.
+
+    Only returns fields of that are 1D arrays of float64 values that are included in GPKG_DEFAULT_FIELD_MAP
+
+    :returns: List of (field_name, display_name) tuples
+    """
+    var_type_dict = {
+        VT_NODE: "nodes",
+        VT_NODE_HYBRID: "nodes",
+        VT_FLOW: "lines",
+        VT_FLOW_HYBRID: "lines",
+        VT_PUMP: "pumps"
+    }
+    threedigrid_object = (
+        getattr(gridadmin, var_type_dict[var_type]).filter(id__eq=-8888)  # id__eq=-8888: do not fetch any data
+    )
+    gpkg_default_field_map = threedigrid_object.GPKG_DEFAULT_FIELD_MAP
+    result = []
+    gpkg_field_names = (key for key in gpkg_default_field_map.keys() if "__" not in key)
+    for key, value in threedigrid_object.only(*gpkg_field_names).data.items():
+        if value.dtype == np.float64 and value.ndim == 1:
+            display_name = gpkg_default_field_map[key]
+            result.append((key, display_name))
+    result.sort()
+    return result
 
 
 def time_intervals(
@@ -270,14 +299,14 @@ def get_exchange_level(nodes: Nodes, lines: Lines, no_data: float) -> np.array:
 
     Returned array has the same length and order as the input nodes
 
-    Returned value for nodes without 1D2D connections is ``no_data``
+    Returned value for that are not 1D nodes or do not have 1D2D connections is ``no_data``
     """
     # find adjacent lines
     lines = filter_lines_by_node_ids(lines, nodes.id).subset("1D2D")
 
     # make array to lookup thresholds by node id
     max_node_id = max(nodes.id.max(), lines.line.max(initial=-1))
-    threshold_by_id = np.full(max_node_id + 1, no_data)
+    threshold_by_id = np.full(shape=max_node_id + 1, fill_value=no_data)
 
     # populate lookup array with lowest dpumax
     dpumax = lines.dpumax
@@ -286,23 +315,25 @@ def get_exchange_level(nodes: Nodes, lines: Lines, no_data: float) -> np.array:
     threshold_by_id[end] = np.fmin(dpumax, threshold_by_id[end])
 
     threshold = threshold_by_id[nodes.id]
+    nodeds_1d_id = nodes.filter(node_type__in=[3, 4]).id
+    mask = np.logical_not(np.in1d(nodes.id, nodeds_1d_id))
+    threshold[mask] = no_data
     return threshold
 
 
-def do_threshold_timeseries(gr, nodes, timeseries, aggregation):
-    if aggregation.threshold == THRESHOLD_DRAIN_LEVEL:
-        threshold = nodes.drain_level
-    elif aggregation.threshold == THRESHOLD_EXCHANGE_LEVEL:
-        threshold = get_exchange_level(nodes, gr.lines, no_data=np.inf)
-
-    timeseries[np.isnan(timeseries)] = -np.inf
-    return np.greater(timeseries, threshold[np.newaxis])
-
-
 def aggregate_prepared_timeseries(
-    timeseries, tintervals, start_time, aggregation: Aggregation
+    timeseries, tintervals, start_time, aggregation: Aggregation, threshold_values: Union[float, np.array] = None
 ) -> np.array:
     """Return an array with one value for each node or line"""
+    threshold_compare_methods = {
+        "below_thres": np.less,
+        "on_thres": np.isclose,
+        "above_thres": np.greater,
+        "time_below_threshold": np.less,
+        "time_on_threshold": np.isclose,
+        "time_above_threshold": np.greater,
+    }
+
     if aggregation.method.short_name == "sum":
         raw_values_per_time_interval = np.multiply(timeseries.T, tintervals).T
         result = np.sum(raw_values_per_time_interval, axis=0)
@@ -331,25 +362,18 @@ def aggregate_prepared_timeseries(
         result = np.array(
             [find_finite_1d(col, index=-1) for col in timeseries.T]
         )
-    elif aggregation.method.short_name == "above_thres":
-        raw_values_above_threshold = np.greater(
-            timeseries, aggregation.threshold
+    elif aggregation.method.short_name in list(threshold_compare_methods.keys()):
+        compare_method = threshold_compare_methods[aggregation.method.short_name]
+        raw_values_compared_to_threshold = compare_method(
+            timeseries,
+            threshold_values if isinstance(threshold_values, float) else threshold_values[np.newaxis]
         )
-        time_above_threshold = np.sum(
-            np.multiply(raw_values_above_threshold.T, tintervals).T, axis=0
-        )
-        total_time = np.sum(tintervals)
-        result = np.multiply(np.divide(time_above_threshold, total_time), 100.0)
-    elif aggregation.method.short_name == "below_thres":
-        raw_values_below_threshold = np.less(timeseries, aggregation.threshold)
-        time_below_threshold = np.sum(
-            np.multiply(raw_values_below_threshold.T, tintervals).T, axis=0
-        )
-        total_time = np.sum(tintervals)
-        result = np.multiply(np.divide(time_below_threshold, total_time), 100.0)
-    elif aggregation.method.short_name == "time_above_threshold":
-        # the timeseries is already a the result of the thresholding
-        result = (tintervals[:, np.newaxis] * timeseries).sum(0)
+        time_criterion_is_met = (tintervals[:, np.newaxis] * raw_values_compared_to_threshold).sum(0)
+        if aggregation.method.short_name in ["below_thres", "on_thres", "above_thres"]:
+            total_time = np.sum(tintervals)
+            result = np.multiply(np.divide(time_criterion_is_met, total_time), 100.0)
+        else:
+            result = time_criterion_is_met
     else:
         raise ValueError(
             'Unknown aggregation method "{}".'.format(
@@ -358,9 +382,26 @@ def aggregate_prepared_timeseries(
         )
 
     # multiplier (unit conversion)
-    # TODO should this be moved to curated_timeseries()?
     result *= aggregation.multiplier
     return result
+
+
+def get_threshold_values(
+        threedigrid_object: Union[Nodes, Lines, Pumps],
+        threshold_attribute: str,
+        lines: Lines = None
+) -> np.array:
+    """
+    Return an array of values to be used as tresholds, one value for each node/line/pump
+
+    :param threedigrid_object: Nodes, Lines, or Pumps object to get the threshold values from
+    :param threshold_attribute: field to get the threshold values from
+    :param lines: required only when threshold attribute = "exchange_level_1d2d"
+    """
+    if threshold_attribute == EXCHANGE_LEVEL_1D2D:
+        return get_exchange_level(nodes=threedigrid_object, lines=lines, no_data=np.inf)
+    else:
+        return threedigrid_object.only(threshold_attribute).data[threshold_attribute]
 
 
 def time_aggregate(
@@ -369,12 +410,10 @@ def time_aggregate(
     end_time,
     aggregation: Aggregation,
     cfl_strictness=1,
-    **kwargs,  # to make signature interchangeable with hybrid_time_aggregate
-):
+    gr: Union[GridH5Admin, GridH5ResultAdmin] = None,
+) -> np.ndarray:
     """
     Aggregate the variable with method using threshold within time frame
-
-    :rtype: np.ndarray
 
     This method implicitly assumes that the discharge at a specific timestamp remains the same until the next
     timestamp, i.e. if there are timestamps at every 300 s, and the user inputs '450' as end_time, the discharge at
@@ -382,6 +421,7 @@ def time_aggregate(
     end_time is also required. For that reason, temporal filtering is done within this function, while other types
     of filtering (spatial, typological, id-based) are not.
     """
+
     timeseries, tintervals = prepare_timeseries(
         threedigrid_object=threedigrid_object,
         start_time=start_time,
@@ -390,13 +430,18 @@ def time_aggregate(
         cfl_strictness=cfl_strictness,
     )
 
-    if aggregation.method.short_name == "time_above_threshold":
-        timeseries = do_threshold_timeseries(
-            gr=kwargs["gr"],
-            nodes=threedigrid_object,
-            timeseries=timeseries,
-            aggregation=aggregation,
-        )
+    if aggregation.method.has_threshold:
+        lines = gr.lines if aggregation.threshold == EXCHANGE_LEVEL_1D2D else None
+        if isinstance(aggregation.threshold, float):
+            threshold_values = aggregation.threshold
+        else:
+            threshold_values = get_threshold_values(
+                threedigrid_object=threedigrid_object,
+                threshold_attribute=aggregation.threshold,
+                lines=lines
+            )
+    else:
+        threshold_values = None
 
     # Apply aggregation method
     result = aggregate_prepared_timeseries(
@@ -404,6 +449,7 @@ def time_aggregate(
         tintervals=tintervals,
         start_time=start_time,
         aggregation=aggregation,
+        threshold_values=threshold_values
     )
     return result
 
@@ -413,12 +459,25 @@ def hybrid_time_aggregate(
     start_time: float,
     end_time: float,
     aggregation: Aggregation,
-    gr: GridH5ResultAdmin,
-    **kwargs,  # to make signature interchangeable with time_aggregate
+    cfl_strictness: float = 1,  # to make signature interchangeable with time_aggregate
+    gr: Union[GridH5Admin, GridH5ResultAdmin] = None,
 ):
     """
     Aggregations for which both the node/flowline and the flowlines/nodes it is connected to are required
     """
+    if aggregation.method.has_threshold:
+        lines = gr.lines if aggregation.threshold == EXCHANGE_LEVEL_1D2D else None
+        if isinstance(aggregation.threshold, float):
+            threshold_values = aggregation.threshold
+        else:
+            threshold_values = get_threshold_values(
+                threedigrid_object=threedigrid_object,
+                threshold_attribute=aggregation.threshold,
+                lines=lines
+            )
+    else:
+        threshold_values = None
+
     if "q_" in aggregation.variable.short_name:
         flows = flow_per_node(
             gr=gr,
@@ -455,6 +514,7 @@ def hybrid_time_aggregate(
             tintervals=tintervals,
             start_time=start_time,
             aggregation=aggregation,
+            threshold_values=threshold_values,
         )
     elif aggregation.variable.short_name == "bed_grad":
         result, _ = gradients(
@@ -473,6 +533,7 @@ def hybrid_time_aggregate(
             tintervals=tintervals,
             start_time=start_time,
             aggregation=aggregation,
+            threshold_values=threshold_values,
         )
     else:
         raise ValueError(

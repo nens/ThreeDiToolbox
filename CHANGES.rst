@@ -1,11 +1,20 @@
 3Di Results Analysis changelog
 ========================
 
-3.8.2 (unreleased)
+3.9.1 (unreleased)
 ------------------
 
 - Add pump support to Result Aggregation tool
+- Add preset "Total pumped volume" to Result Aggregation tool
+- Add preset "Pumps: % of time at max capacity" to Result Aggregation tool
+- Cross-sectional discharge algorithm: allow cross-section lines to have different crs than 3Di results, automatically reproject
 
+3.9.0 (2024-06-21)
+------------------
+
+- Support sorting of simulation results by clicking table headers (#1010)
+- Visualize substance concentrations on the map (#1013)
+- Improvements in styling of results visualised on the map (#1021)
 
 3.8.1 (2024-06-05)
 ------------------

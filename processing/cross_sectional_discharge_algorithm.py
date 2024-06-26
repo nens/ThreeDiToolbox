@@ -33,6 +33,7 @@ from pathlib import Path
 
 from osgeo import ogr
 from qgis.core import QgsCoordinateReferenceSystem
+from qgis.core import QgsCoordinateTransform
 from qgis.core import QgsFeatureSink
 from qgis.core import QgsField
 from qgis.core import QgsFields
@@ -287,14 +288,17 @@ class CrossSectionalDischargeAlgorithm(QgsProcessingAlgorithm):
             QgsField(name="q_net_sum", type=QVariant.Double)
         )
 
-        crs = QgsCoordinateReferenceSystem(f"EPSG:{gr.epsg_code}")
+        threedi_results_crs = QgsCoordinateReferenceSystem(f"EPSG:{gr.epsg_code}")
+        cross_section_lines_crs = cross_section_lines.sourceCrs()
+        coordinate_transform = QgsCoordinateTransform(cross_section_lines_crs, threedi_results_crs, context.project())
+
         (flowlines_sink, self.flowlines_sink_dest_id) = self.parameterAsSink(
             parameters,
             self.OUTPUT_FLOWLINES,
             context,
             fields=flowlines_sink_fields,
             geometryType=QgsWkbTypes.LineString,
-            crs=crs,
+            crs=threedi_results_crs,
         )
 
         self.target_field_idx = (
@@ -326,7 +330,9 @@ class CrossSectionalDischargeAlgorithm(QgsProcessingAlgorithm):
             feedback.setProgressText(
                 f"Processing cross-section line {gauge_line.id()}..."
             )
-            shapely_linestring = wkt.loads(gauge_line.geometry().asWkt())
+            transformed_geometry = gauge_line.geometry()
+            transformed_geometry.transform(coordinate_transform)
+            shapely_linestring = wkt.loads(transformed_geometry.asWkt())
             tgt_ds = MEMORY_DRIVER.CreateDataSource("")
             ts_gauge_line, total_discharge = left_to_right_discharge_ogr(
                 gr=gr,

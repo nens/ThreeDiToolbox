@@ -845,8 +845,6 @@ class GraphDockWidget(QDockWidget):
             available_wq_vars = threedi_result.available_water_quality_vars[:]  # a copy
             if not available_agg_vars:
                 messagebar_message("Warning", "No aggregation netCDF was found.", level=1, duration=5)
-            if not available_wq_vars:
-                messagebar_message("Warning", "No water quality netCDF was found.", level=1, duration=5)
 
             parameter_config = generate_parameter_config(
                 available_subgrid_vars, agg_vars=available_agg_vars, wq_vars=available_wq_vars

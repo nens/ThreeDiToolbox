@@ -1,7 +1,9 @@
 """Imported in __init__.py"""
 from itertools import tee
 from uuid import uuid4
-from typing import List
+from typing import List, Sequence
+
+import numpy as np
 from threedi_results_analysis.datasource.result_constants import AGGREGATION_VARIABLES
 from threedi_results_analysis.datasource.result_constants import CUMULATIVE_AGGREGATION_UNITS
 from threedi_results_analysis.datasource.result_constants import H_TYPES
@@ -86,7 +88,7 @@ def parse_aggvarname(aggvarname):
     # Aggregation methods unfortunately can contain underscores; for now only
     # these two cases are known.
     # TODO: improve this, e.g., make more generic, because extra cases will
-    # need to be added later
+    #  need to be added later
     if aggvarname.endswith("cum_positive") or aggvarname.endswith("cum_negative"):
         varname, agg_method, sign = aggvarname.rsplit("_", 2)
         return varname, "_".join([agg_method, sign])
@@ -94,6 +96,11 @@ def parse_aggvarname(aggvarname):
     # Works only for aggregation methods without underscores
     varname, agg_method = aggvarname.rsplit("_", 1)  # maxsplit = 1
     return varname, agg_method
+
+
+def is_substance_variable(variable: str) -> bool:
+    """Check if a variable is a substance variable."""
+    return variable.startswith("substance")
 
 
 def generate_parameter_config(subgrid_map_vars, agg_vars, wq_vars):
@@ -172,3 +179,27 @@ def generate_parameter_config(subgrid_map_vars, agg_vars, wq_vars):
         elif _varname in H_TYPES:
             config["h"].append(d)
     return config
+
+
+def pretty(x: Sequence, n: int) -> np.ndarray:
+    """
+    Returns a "pretty" set of bin boundaries roughly of size n
+    that span x. Use, for instance, like:
+      plt.hist(x, bins=pretty(x, 40))
+    """
+    # Python implementation of R function pretty (https://github.com/wch/r-source/blob/trunk/src/appl/pretty.c)
+    # From https://stackoverflow.com/a/73990229
+    h = 1.5
+    h5 = .5 + 1.5 * h
+    lo = np.nanmin(x)
+    up = np.nanmax(x)
+    if not up > lo:
+        raise ValueError("All values are the same.")
+    c = (up - lo) / n
+    b = 10 ** np.floor(np.log10(c))
+    m = [1, (2+h)/(1+h), (5+2*h5)/(1+h5), (10+5*h)/(1+h), 10]
+    k = np.digitize(c/b, m)
+    u = b * [1, 2, 5, 10][k-1]
+    ns = np.floor(lo / u + 1e-10)
+    nu = np.ceil(up / u - 1e-10)
+    return np.arange(ns * u, (nu + 1) * u, u)

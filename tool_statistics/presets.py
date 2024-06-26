@@ -2,8 +2,6 @@ from threedi_results_analysis.utils.threedi_result_aggregation.base import Aggre
 from threedi_results_analysis.utils.threedi_result_aggregation.constants import (
     AGGREGATION_VARIABLES,
     AGGREGATION_METHODS,
-    THRESHOLD_DRAIN_LEVEL,
-    THRESHOLD_EXCHANGE_LEVEL,
 )
 from .style import (
     Style,
@@ -18,6 +16,8 @@ from .style import (
     STYLE_MANHOLE_WATER_DEPTH_1D2D_NODE,
     STYLE_MANHOLE_MIN_FREEBOARD_0D1D,
     STYLE_MANHOLE_MIN_FREEBOARD_1D2D,
+    STYLE_SINGLE_COLUMN_GRADUATED_PUMP,
+    STYLE_SINGLE_COLUMN_GRADUATED_PUMP_LINESTRING,
 )
 
 
@@ -280,7 +280,7 @@ water_on_street_aggregations_0d1d = [
     Aggregation(
         variable=AGGREGATION_VARIABLES.get_by_short_name("s1"),
         method=AGGREGATION_METHODS.get_by_short_name("time_above_threshold"),
-        threshold=THRESHOLD_DRAIN_LEVEL,
+        threshold="drain_level",
     ),
 ]
 
@@ -288,7 +288,7 @@ water_on_street_aggregations_1d2d = [
     Aggregation(
         variable=AGGREGATION_VARIABLES.get_by_short_name("s1"),
         method=AGGREGATION_METHODS.get_by_short_name("time_above_threshold"),
-        threshold=THRESHOLD_EXCHANGE_LEVEL,
+        threshold="exchange_level_1d2d",
     ),
 ]
 
@@ -321,7 +321,7 @@ WATER_ON_STREET_DURATION_1D2D_PRESET = Preset(
                 "connection to the 2D domain, so the 'water on street duration' will be 0 for all manholes.",
     aggregations=water_on_street_aggregations_1d2d,
     nodes_style=STYLE_WATER_ON_STREET_DURATION_NODE,
-    nodes_style_param_values={"column": "s1_time_above_threshold_exchange_level"},
+    nodes_style_param_values={"column": "s1_time_above_threshold_exchange_level_1d2d"},
     nodes_layer_name="Manhole: Water on street duration (1D2D)",
     only_manholes=True,
 )
@@ -413,6 +413,51 @@ MIN_FREEBOARD_1D2D_PRESETS = Preset(
     only_manholes=True
 )
 
+# Pump: Total pumped volume
+total_pumped_volume_aggregations = [
+    Aggregation(
+        variable=AGGREGATION_VARIABLES.get_by_short_name("q_pump"),
+        method=AGGREGATION_METHODS.get_by_short_name("sum")
+    ),
+]
+
+TOTAL_PUMPED_VOLUME_PRESETS = Preset(
+    name="Pump: Total pumped volume",
+    description="Total volume pumped by each pump in the selected time period.",
+    aggregations=total_pumped_volume_aggregations,
+
+    pumps_style=STYLE_SINGLE_COLUMN_GRADUATED_PUMP,
+    pumps_style_param_values={"column": "q_pump_sum"},
+    pumps_layer_name="Pump (point): Total pumped volume [m3]",
+
+    pumps_linestring_style=STYLE_SINGLE_COLUMN_GRADUATED_PUMP_LINESTRING,
+    pumps_linestring_style_param_values={"column": "q_pump_sum"},
+    pumps_linestring_layer_name="Pump (line): Total pumped volume [m3]",
+)
+
+# Pump: time at max capacity
+pump_time_at_max_capacity_aggregations = [
+    Aggregation(
+        variable=AGGREGATION_VARIABLES.get_by_short_name("q_pump"),
+        method=AGGREGATION_METHODS.get_by_short_name("on_thres"),
+        threshold="capacity"
+    ),
+]
+
+PUMP_TIME_AT_MAX_CAPACITY_PRESETS = Preset(
+    name="Pump: % of time at max capacity",
+    description="Percentage of time that each pump is pumping at its maximum capacity in the selected time period.\n\n"
+                "Note that both the pump implicit factor and the output time step will affect the result.",
+    aggregations=pump_time_at_max_capacity_aggregations,
+
+    pumps_style=STYLE_SINGLE_COLUMN_GRADUATED_PUMP,
+    pumps_style_param_values={"column": "q_pump_on_thres_capacity"},
+    pumps_layer_name="Pump (point): % of time at max capacity",
+
+    pumps_linestring_style=STYLE_SINGLE_COLUMN_GRADUATED_PUMP_LINESTRING,
+    pumps_linestring_style_param_values={"column": "q_pump_on_thres_capacity"},
+    pumps_linestring_layer_name="Pump (line): % of time at max capacity",
+)
 
 PRESETS = [
     NO_PRESET,
@@ -427,4 +472,6 @@ PRESETS = [
     MIN_FREEBOARD_1D2D_PRESETS,
     WATER_ON_STREET_DURATION_0D1D_PRESET,
     WATER_ON_STREET_DURATION_1D2D_PRESET,
+    TOTAL_PUMPED_VOLUME_PRESETS,
+    PUMP_TIME_AT_MAX_CAPACITY_PRESETS,
 ]

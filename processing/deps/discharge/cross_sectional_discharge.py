@@ -154,7 +154,7 @@ def left_to_right_discharge(
             content_type__in=content_types
         )
     ts, tintervals = prepare_timeseries(
-        nodes_or_lines=intersecting_lines,
+        threedigrid_object=intersecting_lines,
         start_time=start_time,
         end_time=end_time,
         aggregation=Q_NET_SUM,

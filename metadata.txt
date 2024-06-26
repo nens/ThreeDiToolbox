@@ -2,7 +2,7 @@
 name=3Di Results Analysis
 qgisMinimumVersion=3.22
 description=3Di Results Analysis
-version=3.8.2
+version=3.9.1
 author=3Di Water Management
 email=servicedesk@nelen-schuurmans.nl
 

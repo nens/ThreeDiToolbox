@@ -418,7 +418,7 @@ STYLE_SINGLE_COLUMN_GRADUATED_PUMP = Style(
     name="Single column graduated",
     output_type="pump",
     params={"column": "column"},
-    qml="node.qml",
+    qml="pump.qml",
     styling_method=style_on_single_column,
 )
 
@@ -426,7 +426,7 @@ STYLE_SINGLE_COLUMN_GRADUATED_PUMP_LINESTRING = Style(
     name="Single column graduated",
     output_type="pump_linestring",
     params={"column": "column"},
-    qml="flowline.qml",
+    qml="pump_linestring.qml",
     styling_method=style_on_single_column,
 )
 

@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>817</width>
-    <height>937</height>
+    <width>926</width>
+    <height>851</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -336,7 +336,7 @@
           <number>0</number>
          </property>
          <property name="columnCount">
-          <number>5</number>
+          <number>6</number>
          </property>
          <attribute name="horizontalHeaderCascadingSectionResizes">
           <bool>true</bool>
@@ -362,6 +362,11 @@
          <column>
           <property name="text">
            <string>Threshold</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Threshold value</string>
           </property>
          </column>
          <column>

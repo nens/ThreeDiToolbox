@@ -67,7 +67,7 @@ class LeakDetectorWithDischargeThreshold(LeakDetector):
             feedback.setProgressText("Calculate cumulative discharges...")
         all_2d_open_water_flowlines = grid_result_admin.lines.subset('2D_OPEN_WATER').filter(id__in=flowline_ids)
         discharges, self.tintervals = prepare_timeseries(
-            nodes_or_lines=all_2d_open_water_flowlines,
+            threedigrid_object=all_2d_open_water_flowlines,
             aggregation=self.Q_NET_SUM
         )
         q_net_sum = aggregate_prepared_timeseries(

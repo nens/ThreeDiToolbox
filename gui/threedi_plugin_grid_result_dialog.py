@@ -5,7 +5,7 @@ import os
 
 from threedi_results_analysis.utils.constants import TOOLBOX_QGIS_SETTINGS_GROUP
 from qgis.PyQt import QtWidgets, uic
-from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot, QModelIndex
+from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot, QModelIndex, Qt, QSortFilterProxyModel
 from qgis.PyQt.QtWidgets import QAbstractItemView
 from qgis.core import QgsSettings
 from qgis.PyQt.QtGui import QStandardItemModel, QStandardItem
@@ -52,11 +52,18 @@ class ThreeDiPluginGridResultDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.tabWidget.currentChanged.connect(self._tabChanged)
         self.model = QStandardItemModel()
-        self.tableView.setModel(self.model)
+        self.current_sort_order = Qt.AscendingOrder
+        self.proxy_model = QSortFilterProxyModel(self)
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setSortRole(Qt.DisplayRole)
+        self.tableView.setModel(self.proxy_model)
         self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tableView.setSelectionMode(QAbstractItemView.SingleSelection)
         self.header_labels = ["Schematisation", "Revision", "Simulation"]
         self.tableView.horizontalHeader().setStretchLastSection(True)
+        self.tableView.horizontalHeader().setSortIndicatorShown(True)
+        self.tableView.horizontalHeader().setSectionsClickable(True)
+        self.tableView.horizontalHeader().sectionClicked.connect(self.on_header_clicked)
         self.tableView.clicked.connect(self._item_selected)
         self.tableView.doubleClicked.connect(self._item_double_clicked)
 
@@ -64,6 +71,14 @@ class ThreeDiPluginGridResultDialog(QtWidgets.QDialog, FORM_CLASS):
         self.loadGridPushButton.clicked.connect(self._add_grid_from_table)
 
         self.refresh()
+
+    @pyqtSlot(int)
+    def on_header_clicked(self, logicalIndex):
+        if self.proxy_model.sortColumn() == logicalIndex:
+            self.current_sort_order = Qt.DescendingOrder if self.current_sort_order == Qt.AscendingOrder else Qt.AscendingOrder
+        else:
+            self.current_sort_order = Qt.AscendingOrder
+        self.proxy_model.sort(logicalIndex, self.current_sort_order)
 
     @pyqtSlot(str)
     def _select_grid(self, input_gridadmin_h5_or_gpkg: str) -> None:
@@ -199,6 +214,7 @@ class ThreeDiPluginGridResultDialog(QtWidgets.QDialog, FORM_CLASS):
             self.messageLabel.setText("Please set your 3Di working directory in the 3Di Models & Simulations settings to be able to load computational grids and results from your 3Di working directory.")
             return
 
+        rows = []
         local_schematisations = list_local_schematisations(threedi_working_dir, use_config_for_revisions=False)
         for schematisation_id, local_schematisation in local_schematisations.items():
             # Iterate over revisions
@@ -209,6 +225,7 @@ class ThreeDiPluginGridResultDialog(QtWidgets.QDialog, FORM_CLASS):
                     schema_item = QStandardItem(local_schematisation.name)
                     schema_item.setEditable(False)
                     revision_item = QStandardItem(str(revision_number))
+                    revision_item.setData(revision_number, Qt.DisplayRole)
                     revision_item.setEditable(False)
                     # We'll store the grid folder with the revision item for fast retrieval
                     revision_item.setData(local_revision.grid_dir)
@@ -216,17 +233,24 @@ class ThreeDiPluginGridResultDialog(QtWidgets.QDialog, FORM_CLASS):
                     result_item.setEditable(False)
                     # We'll store the result folder with the result_item for fast retrieval
                     result_item.setData(os.path.join(local_revision.results_dir, result_dir))
-                    self.model.appendRow([schema_item, revision_item, result_item])
+                    rows.append([schema_item, revision_item, result_item])
 
                 # In case no results are present, but a gridadmin is present, we still add the grid, but without result item
                 if num_of_results == 0 and os.path.exists(os.path.join(local_revision.grid_dir, "gridadmin.h5")):
                     schema_item = QStandardItem(local_schematisation.name)
                     schema_item.setEditable(False)
                     revision_item = QStandardItem(str(revision_number))
+                    revision_item.setData(revision_number, Qt.DisplayRole)
                     revision_item.setEditable(False)
                     # We'll store the grid folder with the revision item for fast retrieval
                     revision_item.setData(local_revision.grid_dir)
-                    self.model.appendRow([schema_item, revision_item])
+                    rows.append([schema_item, revision_item])
+
+        # Sort table rows by schematisation name and
+        # then by revision number using the DisplayRole
+        rows.sort(key=lambda x: (x[0].text(), x[1].data(Qt.DisplayRole)))
+        for row in rows:
+            self.model.appendRow(row)
 
         for i in range(len(self.header_labels)):
             self.tableView.resizeColumnToContents(i)
