@@ -52,6 +52,10 @@ external-dependencies/.generated.marker: constraints.txt external-dependencies/p
 constraints.txt: dependencies.py
 	python3 dependencies.py
 
+checkconflicts:
+	@echo "#### Checking for dependency conflicts"
+	python3 scripts/check-dependency-conflicts.py
+
 test: clean compile
 	@echo "#### Python tests"
 	QT_QPA_PLATFORM=offscreen pytest

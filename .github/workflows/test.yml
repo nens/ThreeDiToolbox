@@ -21,6 +21,9 @@ jobs:
       - name: build
         run: docker-compose build --build-arg uid=`id -u` --build-arg gid=`id -g`
 
+      - name: check dependency conflicts
+        run: docker-compose run qgis-desktop make checkconflicts
+
       - name: test
         run: |
           docker-compose run -e QT_QPA_PLATFORM=offscreen qgis-desktop make test
