@@ -16,6 +16,7 @@ from threedi_results_analysis.processing.schematisation_algorithms import (
     GuessIndicatorAlgorithm,
     ImportHydXAlgorithm,
 )
+from threedi_results_analysis.processing.rasters_to_netcdf_algorithm import RastersToNetCDFAlgorithm
 
 from threedi_results_analysis.processing.threedidepth_algorithms import ThreediDepthAlgorithm, ThreediMaxDepthAlgorithm
 
@@ -39,6 +40,7 @@ class ThreediProvider(QgsProcessingProvider):
         self.addAlgorithm(CrossSectionalDischargeAlgorithm())
         self.addAlgorithm(DetectLeakingObstaclesAlgorithm())
         self.addAlgorithm(DetectLeakingObstaclesWithDischargeThresholdAlgorithm())
+        self.addAlgorithm(RastersToNetCDFAlgorithm())
 
     def id(self, *args, **kwargs):
         """The ID of your plugin, used for identifying the provider.
