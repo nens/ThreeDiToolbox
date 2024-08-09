@@ -51,9 +51,11 @@ from threedi_results_analysis.utils.threedi_result_aggregation.aggregation_class
     VT_FLOW_HYBRID,
     VT_NODE,
     VT_NODE_HYBRID,
+    VT_PUMP,
     VR_INTERFLOW,
     VR_SIMPLE_INFILTRATION,
     VR_INTERCEPTION,
+    VR_PUMP,
     VR_NAMES,
 )
 from threedi_results_analysis.utils.threedi_result_aggregation.constants import (
@@ -80,6 +82,11 @@ DEFAULT_AGGREGATION = Aggregation(
     sign=AggregationSign(short_name="net", long_name="Net"),
     method=AGGREGATION_METHODS.get_by_short_name("sum"),
 )
+
+FLOWLINES_TAB = 0
+NODES_CELLS_TAB = 1
+PUMPS_TAB = 2
+RASTERS_TAB = 3
 
 
 def update_column_widget(
@@ -393,16 +400,14 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
                 units_widget.addItem(units_str, multiplier)
 
     def get_styling_parameters(self, output_type):
-        if output_type == "node":
-            params_widget = self.tableWidgetNodesStyleParams
-        elif output_type == "flowline":
-            params_widget = self.tableWidgetFlowlinesStyleParams
-        elif output_type == "cell":
-            params_widget = self.tableWidgetCellsStyleParams
-        else:
-            raise ValueError(
-                "Invalid output type. Choose one of [node, flowline, cell]."
-            )
+        params_widgets = {
+            "node": self.tableWidgetNodesStyleParams,
+            "flowline": self.tableWidgetFlowlinesStyleParams,
+            "cell": self.tableWidgetCellsStyleParams,
+            "pump": self.tableWidgetPumpsStyleParams,
+            "pump_linestring": self.tableWidgetPumpsLinestringStyleParams,
+        }
+        params_widget = params_widgets[output_type]
         result = {}
         for row in range(params_widget.rowCount()):
             result[
@@ -411,17 +416,31 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
         return result
 
     def init_styling_tab(self):
+        type_widgets = {
+            "flowline": self.comboBoxFlowlinesStyleType,
+            "node": self.comboBoxNodesStyleType,
+            "cell": self.comboBoxCellsStyleType,
+            "pump": self.comboBoxPumpsStyleType,
+            "pump_linestring": self.comboBoxPumpsLinestringStyleType,
+        }
         for style in STYLES:
-            if style.output_type == "flowline":
-                type_widget = self.comboBoxFlowlinesStyleType
-            elif style.output_type == "node":
-                type_widget = self.comboBoxNodesStyleType
-            elif style.output_type == "cell":
-                type_widget = self.comboBoxCellsStyleType
-
+            type_widget = type_widgets[style.output_type]
             row = type_widget.count()
             type_widget.addItem(style.name)
             type_widget.setItemData(row, style)
+
+        self.checkbox_flowlines_state_changed()
+        self.checkBoxFlowlines.stateChanged.connect(self.checkbox_flowlines_state_changed)
+        self.checkbox_nodes_state_changed()
+        self.checkBoxNodes.stateChanged.connect(self.checkbox_nodes_state_changed)
+        self.checkbox_cells_state_changed()
+        self.checkBoxCells.stateChanged.connect(self.checkbox_cells_state_changed)
+        self.checkbox_pumps_state_changed()
+        self.checkBoxPumps.stateChanged.connect(self.checkbox_pumps_state_changed)
+        self.checkbox_pumps_linestring_state_changed()
+        self.checkBoxPumpsLinestring.stateChanged.connect(self.checkbox_pumps_linestring_state_changed)
+        self.checkbox_rasters_state_changed()
+        self.checkBoxRasters.stateChanged.connect(self.checkbox_rasters_state_changed)
 
         self.comboBoxFlowlinesStyleType.currentIndexChanged.connect(
             self.flowline_styling_type_changed
@@ -432,13 +451,18 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.comboBoxCellsStyleType.currentIndexChanged.connect(
             self.cell_styling_type_changed
         )
+        self.comboBoxPumpsStyleType.currentIndexChanged.connect(
+            self.pump_styling_type_changed
+        )
+        self.comboBoxPumpsLinestringStyleType.currentIndexChanged.connect(
+            self.pump_linestring_styling_type_changed
+        )
         self.doubleSpinBoxResolution.valueChanged.connect(
             self.raster_resolution_changed
         )
         self.doubleSpinBoxNodesLayerResolution.valueChanged.connect(
             self.nodes_layer_resolution_changed
         )
-        self.groupBoxRasters.toggled.connect(self.enable_raster_folder_widget)
         self.mQgsFileWidgetRasterFolder.setStorageMode(
             QgsFileWidget.GetDirectory
         )
@@ -449,12 +473,20 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
         flowlines_style: Style = None,
         nodes_style: Style = None,
         cells_style: Style = None,
+        pumps_style: Style = None,
+        pumps_linestring_style: Style = None,
+
         flowlines_style_param_values: dict = None,
         cells_style_param_values: dict = None,
         nodes_style_param_values: dict = None,
-        uncheck_flowlines_groupbox: bool = False,
-        uncheck_nodes_groupbox: bool = False,
-        uncheck_cells_groupbox: bool = False
+        pumps_style_param_values: dict = None,
+        pumps_linestring_style_param_values: dict = None,
+
+        uncheck_flowlines_checkbox: bool = False,
+        uncheck_nodes_checkbox: bool = False,
+        uncheck_cells_checkbox: bool = False,
+        uncheck_pumps_checkbox: bool = False,
+        uncheck_pumps_linestring_checkbox: bool = False,
     ):
         """
         Styles can be set (e.g. when a preset is used) or be None so the default for the first variable is used
@@ -475,16 +507,16 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
             )
             if idx > -1:
                 self.comboBoxFlowlinesStyleType.setCurrentIndex(idx)
-            self.groupBoxFlowlines.setChecked(True)
-            self.groupBoxFlowlines.setEnabled(True)
+            self.checkBoxFlowlines.setChecked(True)
+            self.checkBoxFlowlines.setEnabled(True)
             self.flowline_styling_type_changed(
                 param_values=flowlines_style_param_values
             )
         else:
-            self.groupBoxFlowlines.setEnabled(False)
-            self.groupBoxFlowlines.setChecked(False)
-        if uncheck_flowlines_groupbox:
-            self.groupBoxFlowlines.setChecked(False)
+            self.checkBoxFlowlines.setEnabled(False)
+            self.checkBoxFlowlines.setChecked(False)
+        if uncheck_flowlines_checkbox:
+            self.checkBoxFlowlines.setChecked(False)
 
         # Nodes and cells
         filtered_das = filter_demanded_aggregations(
@@ -500,10 +532,10 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
             idx = self.comboBoxNodesStyleType.findText(nodes_style_name)
             if idx > -1:
                 self.comboBoxNodesStyleType.setCurrentIndex(idx)
-            self.groupBoxNodes.setEnabled(True)
-            self.groupBoxNodes.setChecked(True)
-            if uncheck_nodes_groupbox:
-                self.groupBoxNodes.setChecked(False)
+            self.checkBoxNodes.setEnabled(True)
+            self.checkBoxNodes.setChecked(True)
+            if uncheck_nodes_checkbox:
+                self.checkBoxNodes.setChecked(False)
 
             if cells_style is None:
                 cells_style_name = DEFAULT_STYLES[
@@ -515,13 +547,13 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
             idx = self.comboBoxCellsStyleType.findText(cells_style_name)
             if idx > -1:
                 self.comboBoxCellsStyleType.setCurrentIndex(idx)
-            self.groupBoxCells.setEnabled(True)
-            self.groupBoxCells.setChecked(True)
-            if uncheck_cells_groupbox:
-                self.groupBoxCells.setChecked(False)
+            self.checkBoxCells.setEnabled(True)
+            self.checkBoxCells.setChecked(True)
+            if uncheck_cells_checkbox:
+                self.checkBoxCells.setChecked(False)
 
-            # Do not automatically set groupBoxRasters to Checked because this requires follow-up input from the user
-            self.groupBoxRasters.setEnabled(True)
+            # Do not automatically set checkBoxRasters to Checked because this requires follow-up input from the user
+            self.checkBoxRasters.setEnabled(True)
 
             self.node_styling_type_changed(
                 param_values=nodes_style_param_values
@@ -531,13 +563,108 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
             )
 
         else:
-            self.groupBoxNodes.setEnabled(False)
-            self.groupBoxCells.setEnabled(False)
-            self.groupBoxRasters.setEnabled(False)
+            self.checkBoxNodes.setEnabled(False)
+            self.checkBoxCells.setEnabled(False)
+            self.checkBoxRasters.setEnabled(False)
 
-            self.groupBoxNodes.setChecked(False)
-            self.groupBoxCells.setChecked(False)
-            self.groupBoxRasters.setChecked(False)
+            self.checkBoxNodes.setChecked(False)
+            self.checkBoxCells.setChecked(False)
+            self.checkBoxRasters.setChecked(False)
+
+        # Pumps
+        filtered_das = filter_demanded_aggregations(self.demanded_aggregations, [VT_PUMP])
+        if len(filtered_das) > 0:
+            # Pump (point)
+            if pumps_style is None:
+                pumps_style_name = DEFAULT_STYLES[filtered_das[0].variable.short_name]["pump"].name
+            else:
+                pumps_style_name = pumps_style.name
+            idx = self.comboBoxPumpsStyleType.findText(pumps_style_name)
+            if idx > -1:
+                self.comboBoxPumpsStyleType.setCurrentIndex(idx)
+            self.checkBoxPumps.setChecked(True)
+            self.checkBoxPumps.setEnabled(True)
+            self.pump_styling_type_changed(param_values=pumps_style_param_values)
+
+            # Pump (linestring)
+            if pumps_linestring_style is None:
+                pumps_linestring_style_name = DEFAULT_STYLES[
+                    filtered_das[0].variable.short_name
+                ]["pump_linestring"].name
+            else:
+                pumps_linestring_style_name = pumps_linestring_style.name
+            idx = self.comboBoxPumpsLinestringStyleType.findText(pumps_linestring_style_name)
+            if idx > -1:
+                self.comboBoxPumpsLinestringStyleType.setCurrentIndex(idx)
+            self.checkBoxPumpsLinestring.setChecked(True)
+            self.checkBoxPumpsLinestring.setEnabled(True)
+            self.pump_linestring_styling_type_changed(param_values=pumps_linestring_style_param_values)
+        else:
+            self.checkBoxPumps.setEnabled(False)
+            self.checkBoxPumps.setChecked(False)
+            self.checkBoxPumpsLinestring.setEnabled(False)
+            self.checkBoxPumpsLinestring.setChecked(False)
+
+        if uncheck_pumps_checkbox:
+            self.checkBoxPumps.setChecked(False)
+
+        if uncheck_pumps_linestring_checkbox:
+            self.checkBoxPumpsLinestring.setChecked(False)
+
+    def checkbox_flowlines_state_changed(self):
+        self.tabWidgetStyling.setTabEnabled(FLOWLINES_TAB, self.checkBoxFlowlines.isChecked())
+        self.activate_first_enabled_tab(self.tabWidgetStyling)
+
+    def checkbox_nodes_state_changed(self):
+        self.tabWidgetStyling.setTabEnabled(
+            NODES_CELLS_TAB,
+            self.checkBoxNodes.isChecked() or self.checkBoxCells.isChecked()
+        )
+        self.groupBoxNodes.setEnabled(self.checkBoxNodes.isChecked())
+        self.activate_first_enabled_tab(self.tabWidgetStyling)
+
+    def checkbox_cells_state_changed(self):
+        self.tabWidgetStyling.setTabEnabled(
+            NODES_CELLS_TAB,
+            self.checkBoxNodes.isChecked() or self.checkBoxCells.isChecked()
+        )
+        self.groupBoxCells.setEnabled(self.checkBoxCells.isChecked())
+        self.activate_first_enabled_tab(self.tabWidgetStyling)
+
+    def checkbox_pumps_state_changed(self):
+        self.tabWidgetStyling.setTabEnabled(
+            PUMPS_TAB,
+            self.checkBoxPumps.isChecked() or self.checkBoxPumpsLinestring.isChecked()
+        )
+        self.groupBoxPumps.setEnabled(self.checkBoxPumps.isChecked())
+        self.activate_first_enabled_tab(self.tabWidgetStyling)
+
+    def checkbox_pumps_linestring_state_changed(self):
+        self.tabWidgetStyling.setTabEnabled(
+            PUMPS_TAB,
+            self.checkBoxPumps.isChecked() or self.checkBoxPumpsLinestring.isChecked()
+        )
+        self.groupBoxPumpsLinestring.setEnabled(self.checkBoxPumpsLinestring.isChecked())
+        self.activate_first_enabled_tab(self.tabWidgetStyling)
+
+    def checkbox_rasters_state_changed(self):
+        self.tabWidgetStyling.setTabEnabled(RASTERS_TAB, self.checkBoxRasters.isChecked())
+        self.activate_first_enabled_tab(self.tabWidgetStyling)
+        self.mQgsFileWidgetRasterFolder.setEnabled(self.checkBoxRasters.isChecked())
+        self.validate()
+
+    @staticmethod
+    def activate_first_enabled_tab(tabwidget):
+        """
+        If the current active tab is not enabled, switch to the first enabled tab
+        or if no tab is enabled, to the first tab
+        """
+        if not tabwidget.isTabEnabled(tabwidget.currentIndex()):
+            for index in range(tabwidget.count() + 1):
+                if tabwidget.isTabEnabled(index):
+                    tabwidget.setCurrentIndex(index)
+                    return
+            tabwidget.setCurrentIndex(0)
 
     def styling_type_changed(
         self, output_type: str, param_values: dict = None
@@ -554,9 +681,18 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
             params_widget = self.tableWidgetCellsStyleParams
             type_widget = self.comboBoxCellsStyleType
             aggregation_variable_types = [VT_NODE, VT_NODE_HYBRID]
+        elif output_type == "pump":
+            params_widget = self.tableWidgetPumpsStyleParams
+            type_widget = self.comboBoxPumpsStyleType
+            aggregation_variable_types = [VT_PUMP]
+        elif output_type == "pump_linestring":
+            params_widget = self.tableWidgetPumpsLinestringStyleParams
+            type_widget = self.comboBoxPumpsLinestringStyleType
+            aggregation_variable_types = [VT_PUMP]
+
         else:
             raise ValueError(
-                "Invalid output type. Choose one of [node, flowline, cell]."
+                "Invalid output type. Choose one of [node, flowline, cell, pump, pump_linestring]."
             )
         for i in reversed(range(params_widget.rowCount())):
             params_widget.removeRow(i)
@@ -608,6 +744,20 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
     ):
         self.styling_type_changed(
             output_type="flowline", param_values=param_values
+        )
+
+    def pump_styling_type_changed(
+        self, signal: int = 1, param_values: dict = None
+    ):
+        self.styling_type_changed(
+            output_type="pump", param_values=param_values
+        )
+
+    def pump_linestring_styling_type_changed(
+        self, signal: int = 1, param_values: dict = None
+    ):
+        self.styling_type_changed(
+            output_type="pump_linestring", param_values=param_values
         )
 
     def raster_resolution_changed(self):
@@ -690,13 +840,6 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
         crs = project.crs()
         self.mExtentGroupBox.setOutputExtentFromUser(canvas_extent, crs)
 
-    def enable_raster_folder_widget(self):
-        if self.groupBoxRasters.isChecked():
-            self.mQgsFileWidgetRasterFolder.setEnabled(True)
-        else:
-            self.mQgsFileWidgetRasterFolder.setEnabled(False)
-        self.validate()
-
     def preset_combobox_changed(self, index):
         preset = self.comboBoxPreset.itemData(index)
 
@@ -723,16 +866,22 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
 
         # Set the default output layer names based on preset, if the current layer name value is not modified yet
         if not self.lineEditOutputFlowLayer.isModified():
-            self.lineEditOutputFlowLayer.setText(preset.flowlines_layer_name if preset.flowlines_layer_name else "")
+            self.lineEditOutputFlowLayer.setText(preset.flowlines_layer_name or "")
 
         if not self.lineEditOutputCellLayer.isModified():
-            self.lineEditOutputCellLayer.setText(preset.cells_layer_name if preset.cells_layer_name else "")
+            self.lineEditOutputCellLayer.setText(preset.cells_layer_name or "")
 
         if not self.lineEditOutputNodeLayer.isModified():
-            self.lineEditOutputNodeLayer.setText(preset.nodes_layer_name if preset.nodes_layer_name else "")
+            self.lineEditOutputNodeLayer.setText(preset.nodes_layer_name or "")
+
+        if not self.lineEditOutputPumpsLayer.isModified():
+            self.lineEditOutputPumpsLayer.setText(preset.pumps_layer_name or "")
+
+        if not self.lineEditOutputPumpsLinestringLayer.isModified():
+            self.lineEditOutputPumpsLinestringLayer.setText(preset.pumps_linestring_layer_name or "")
 
         if not self.lineEditOutputRasterLayer.isModified():
-            self.lineEditOutputRasterLayer.setText(preset.raster_layer_name if preset.raster_layer_name else "")
+            self.lineEditOutputRasterLayer.setText(preset.raster_layer_name or "")
 
         # set manhole filter
         self.onlyManholeCheckBox.setChecked(preset.only_manholes)
@@ -752,35 +901,45 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
             flowlines_style=preset.flowlines_style,
             nodes_style=preset.nodes_style,
             cells_style=preset.cells_style,
+            pumps_style=preset.pumps_style,
+            pumps_linestring_style=preset.pumps_linestring_style,
+
             flowlines_style_param_values=preset.flowlines_style_param_values,
             nodes_style_param_values=preset.nodes_style_param_values,
             cells_style_param_values=preset.cells_style_param_values,
-            uncheck_flowlines_groupbox=preset.flowlines_style is None,
-            uncheck_nodes_groupbox=preset.nodes_style is None,
-            uncheck_cells_groupbox=preset.cells_style is None
+            pumps_style_param_values=preset.pumps_style_param_values,
+            pumps_linestring_style_param_values=preset.pumps_linestring_style_param_values,
 
+            uncheck_flowlines_checkbox=preset.flowlines_style is None,
+            uncheck_nodes_checkbox=preset.nodes_style is None,
+            uncheck_cells_checkbox=preset.cells_style is None,
+            uncheck_pumps_checkbox=preset.pumps_style is None,
+            uncheck_pumps_linestring_checkbox=preset.pumps_linestring_style is None,
         )
 
     def _update_output_layer_fields_based_on_aggregations(self):
         logger.info("Output layer suggestion based on selected aggregations")
 
         # Set the default output layer names based on preset, if the current layer name value is empty
-        suggested_flow_output_layer_name = "flowlines: "
-        suggested_cell_output_layer_name = "cells: "
-        suggested_node_output_layer_name = "nodes: "
-        suggested_raster_output_layer_name = "raster: "
+        suggested_flow_output_layer_name = "Flowlines: "
+        suggested_cell_output_layer_name = "Cells: "
+        suggested_node_output_layer_name = "Nodes: "
+        suggested_pump_output_layer_name = "Pumps (points): "
+        suggested_pump_linestring_output_layer_name = "Pumps (lines): "
+        suggested_raster_output_layer_name = "Raster: "
 
         postfix = ""
         if len(self.demanded_aggregations) == 0:
             postfix = "aggregation output layer"
         elif len(self.demanded_aggregations) == 1:
-            agg_var = self.demanded_aggregations[0]
-            postfix = agg_var.variable.long_name
-            if agg_var.sign:
-                postfix += " " + agg_var.sign.short_name
-            if agg_var.method:
-                postfix += " " + agg_var.method.short_name
-            postfix += f" [{agg_var.unit_str}]"  # attribute attached in update_demanded_aggegrations()
+            aggregation = self.demanded_aggregations[0]
+            postfix_items = [aggregation.variable.long_name]
+            if aggregation.variable.signed:
+                postfix_items.append(aggregation.sign.long_name.lower())
+            if aggregation.method:
+                postfix_items.append(aggregation.method.long_name.lower())
+            postfix_items.append(f"[{aggregation.unit_str}]")  # attribute attached in update_demanded_aggegrations()
+            postfix = " ".join(postfix_items)
         else:
             postfix = "multiple aggregations"
 
@@ -792,6 +951,12 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
 
         if not self.lineEditOutputNodeLayer.isModified():
             self.lineEditOutputNodeLayer.setText(suggested_node_output_layer_name + postfix)
+
+        if not self.lineEditOutputPumpsLayer.isModified():
+            self.lineEditOutputPumpsLayer.setText(suggested_pump_output_layer_name + postfix)
+
+        if not self.lineEditOutputPumpsLinestringLayer.isModified():
+            self.lineEditOutputPumpsLinestringLayer.setText(suggested_pump_linestring_output_layer_name + postfix)
 
         if not self.lineEditOutputRasterLayer.isModified():
             self.lineEditOutputRasterLayer.setText(suggested_raster_output_layer_name + postfix)
@@ -807,6 +972,8 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
                 containing_information.append(VR_INTERFLOW)
             if self.gr.has_interception:
                 containing_information.append(VR_INTERCEPTION)
+            if self.gr.has_pumpstations:
+                containing_information.append(VR_PUMP)
 
         return containing_information
 
@@ -907,7 +1074,7 @@ class ThreeDiCustomStatsDialog(QtWidgets.QDialog, FORM_CLASS):
             logger.warning("Zero aggregations selected")
             valid = False
         if (
-            self.groupBoxRasters.isChecked()
+            self.checkBoxRasters.isChecked()
             and self.mQgsFileWidgetRasterFolder.filePath() == ""
         ):
             logger.warning("No raster folder selected")

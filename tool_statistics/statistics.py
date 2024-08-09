@@ -68,6 +68,8 @@ class Aggregate3DiResults(QgsTask):
         output_flowlines: bool,
         output_cells: bool,
         output_nodes: bool,
+        output_pumps: bool,
+        output_pumps_linestring: bool,
         output_rasters: bool,
     ):
         super().__init__(description, QgsTask.CanCancel)
@@ -87,6 +89,8 @@ class Aggregate3DiResults(QgsTask):
         self.output_flowlines = output_flowlines
         self.output_cells = output_cells
         self.output_nodes = output_nodes
+        self.output_pumps = output_pumps
+        self.output_pumps_linestring = output_pumps_linestring
         self.output_rasters = output_rasters
 
         self.parent.iface.messageBar().pushMessage(
@@ -118,6 +122,8 @@ class Aggregate3DiResults(QgsTask):
                 output_flowlines=self.output_flowlines,
                 output_cells=self.output_cells,
                 output_nodes=self.output_nodes,
+                output_pumps=self.output_pumps,
+                output_pumps_linestring=self.output_pumps_linestring,
                 output_rasters=self.output_rasters,
             )
 
@@ -179,73 +185,60 @@ class Aggregate3DiResults(QgsTask):
                         utf8_path=raster_output_fn, src=rast
                     )
                     layer_name = self.parent.lineEditOutputRasterLayer.text() + f": {rastname}"
-                    raster_layer = QgsRasterLayer(raster_output_fn, layer_name if layer_name else f"Aggregation results: raster {rastname}")
+                    raster_layer = QgsRasterLayer(
+                        raster_output_fn,
+                        layer_name or f"Aggregation results: raster {rastname}")
                     result_group = self._get_or_create_result_group(self.result, GROUP_NAME)
                     QgsProject.instance().addMapLayer(raster_layer, addToLegend=False)
                     result_group.insertLayer(0, raster_layer)
 
-            # cell layer
-            ogr_lyr = self.ogr_ds.GetLayerByName("cell")
-            if ogr_lyr is not None:
-                if ogr_lyr.GetFeatureCount() > 0:
-                    layer_name = self.parent.lineEditOutputCellLayer.text()
-                    qgs_lyr = as_qgis_memory_layer(ogr_lyr, layer_name if layer_name else "Aggregation results: cells")
-                    result_group = self._get_or_create_result_group(self.result, GROUP_NAME)
-                    QgsProject.instance().addMapLayer(qgs_lyr, addToLegend=False)
-                    result_group.insertLayer(0, qgs_lyr)
-
-                    style = self.parent.comboBoxCellsStyleType.currentData()
-                    style_kwargs = self.parent.get_styling_parameters(
-                        output_type=style.output_type
-                    )
-                    style.apply(qgis_layer=qgs_lyr, style_kwargs=style_kwargs)
-
-            # flowline layer
-            ogr_lyr = self.ogr_ds.GetLayerByName("flowline")
-            if ogr_lyr is not None:
-                if ogr_lyr.GetFeatureCount() > 0:
-                    layer_name = self.parent.lineEditOutputFlowLayer.text()
-                    qgs_lyr = as_qgis_memory_layer(ogr_lyr, layer_name if layer_name else "Aggregation results: flowlines")
-                    result_group = self._get_or_create_result_group(self.result, GROUP_NAME)
-                    QgsProject.instance().addMapLayer(qgs_lyr, addToLegend=False)
-                    result_group.insertLayer(0, qgs_lyr)
-                    style = (
-                        self.parent.comboBoxFlowlinesStyleType.currentData()
-                    )
-                    style_kwargs = self.parent.get_styling_parameters(
-                        output_type=style.output_type
-                    )
-                    style.apply(qgis_layer=qgs_lyr, style_kwargs=style_kwargs)
-
-            # node layer
-            ogr_lyr = self.ogr_ds.GetLayerByName("node")
-            if ogr_lyr is not None:
-                if ogr_lyr.GetFeatureCount() > 0:
-                    layer_name = self.parent.lineEditOutputNodeLayer.text()
-                    qgs_lyr = as_qgis_memory_layer(ogr_lyr, layer_name if layer_name else "Aggregation results: nodes")
-                    result_group = self._get_or_create_result_group(self.result, GROUP_NAME)
-                    QgsProject.instance().addMapLayer(qgs_lyr, addToLegend=False)
-                    result_group.insertLayer(0, qgs_lyr)
-                    style = self.parent.comboBoxNodesStyleType.currentData()
-                    style_kwargs = self.parent.get_styling_parameters(
-                        output_type=style.output_type
-                    )
-                    style.apply(qgis_layer=qgs_lyr, style_kwargs=style_kwargs)
-
-            # resampled point layer
-            ogr_lyr = self.ogr_ds.GetLayerByName("node_resampled")
-            if ogr_lyr is not None:
-                if ogr_lyr.GetFeatureCount() > 0:
-                    layer_name = self.parent.lineEditOutputNodeLayer.text()
-                    qgs_lyr = as_qgis_memory_layer(ogr_lyr, (layer_name + "_resampled_nodes") if layer_name else "Aggregation results: resampled nodes")
-                    result_group = self._get_or_create_result_group(self.result, GROUP_NAME)
-                    QgsProject.instance().addMapLayer(qgs_lyr, addToLegend=False)
-                    result_group.insertLayer(0, qgs_lyr)
-                    style = self.parent.comboBoxNodesStyleType.currentData()
-                    style_kwargs = self.parent.get_styling_parameters(
-                        output_type=style.output_type
-                    )
-                    style.apply(qgis_layer=qgs_lyr, style_kwargs=style_kwargs)
+            # vector layers
+            for output_layer_name, layer_name_widget, style_type_widget in [
+                (
+                        "cell",
+                        self.parent.lineEditOutputCellLayer,
+                        self.parent.comboBoxCellsStyleType
+                ),
+                (
+                        "flowline",
+                        self.parent.lineEditOutputFlowLayer,
+                        self.parent.comboBoxFlowlinesStyleType
+                ),
+                (
+                        "pump",
+                        self.parent.lineEditOutputPumpsLayer,
+                        self.parent.comboBoxPumpsStyleType
+                ),
+                (
+                        "pump_linestring",
+                        self.parent.lineEditOutputPumpsLinestringLayer,
+                        self.parent.comboBoxPumpsLinestringStyleType
+                ),
+                (
+                        "node",
+                        self.parent.lineEditOutputNodeLayer,
+                        self.parent.comboBoxNodesStyleType
+                ),
+                (
+                        "node_resampled",
+                        self.parent.lineEditOutputNodeLayer,
+                        self.parent.comboBoxNodesStyleType
+                ),
+            ]:
+                ogr_lyr = self.ogr_ds.GetLayerByName(output_layer_name)
+                if ogr_lyr is not None:
+                    if ogr_lyr.GetFeatureCount() > 0:
+                        layer_name = layer_name_widget.text()
+                        qgs_lyr = as_qgis_memory_layer(
+                            ogr_lyr,
+                            layer_name or f"Aggregation results: {output_layer_name}"
+                        )
+                        result_group = self._get_or_create_result_group(self.result, GROUP_NAME)
+                        QgsProject.instance().addMapLayer(qgs_lyr, addToLegend=False)
+                        result_group.insertLayer(0, qgs_lyr)
+                        style = (style_type_widget.currentData())
+                        style_kwargs = self.parent.get_styling_parameters(output_type=style.output_type)
+                        style.apply(qgis_layer=qgs_lyr, style_kwargs=style_kwargs)
 
             self.parent.setEnabled(True)
             self.parent.iface.messageBar().pushMessage(
@@ -361,10 +354,12 @@ class StatisticsTool(ThreeDiPluginTool):
             resolution = self.dlg.doubleSpinBoxResolution.value()
 
             # Outputs
-            output_flowlines = self.dlg.groupBoxFlowlines.isChecked()
-            output_nodes = self.dlg.groupBoxNodes.isChecked()
-            output_cells = self.dlg.groupBoxCells.isChecked()
-            output_rasters = self.dlg.groupBoxRasters.isChecked()
+            output_flowlines = self.dlg.checkBoxFlowlines.isChecked()
+            output_nodes = self.dlg.checkBoxNodes.isChecked()
+            output_cells = self.dlg.checkBoxCells.isChecked()
+            output_pumps = self.dlg.checkBoxPumps.isChecked()
+            output_pumps_linestring = self.dlg.checkBoxPumpsLinestring.isChecked()
+            output_rasters = self.dlg.checkBoxRasters.isChecked()
 
             # Resample point layer
             resample_point_layer = self.dlg.checkBoxResample.isChecked()
@@ -389,6 +384,8 @@ class StatisticsTool(ThreeDiPluginTool):
                 output_flowlines=output_flowlines,
                 output_cells=output_cells,
                 output_nodes=output_nodes,
+                output_pumps=output_pumps,
+                output_pumps_linestring=output_pumps_linestring,
                 output_rasters=output_rasters,
             )
             self.tm.addTask(aggregate_threedi_results_task)

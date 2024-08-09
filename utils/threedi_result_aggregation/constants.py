@@ -11,16 +11,17 @@ from .aggregation_classes import (
     AggregationSign,
     AggregationMethod,
     AggregationVariable,
-    VT_NODE,
-    VT_FLOW,
-    PRM_NONE,
-    VT_FLOW_HYBRID,
-    PRM_SPLIT,
-    VT_NODE_HYBRID,
-    PRM_1D,
     VR_INTERFLOW,
     VR_SIMPLE_INFILTRATION,
-    VR_INTERCEPTION ,
+    VR_INTERCEPTION,
+    VT_NODE,
+    VT_NODE_HYBRID,
+    VT_FLOW,
+    VT_FLOW_HYBRID,
+    VT_PUMP,
+    PRM_NONE,
+    PRM_SPLIT,
+    PRM_1D,
 )
 
 KCU_DICT = KCUDescriptor()
@@ -100,7 +101,6 @@ agg_var_list = [
         "units": {("m3", "s"): (1, 1)},
         "can_resample": False,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "u1",
@@ -111,7 +111,6 @@ agg_var_list = [
         "units": {("m", "s"): (1, 1)},
         "can_resample": False,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "au",
@@ -122,7 +121,6 @@ agg_var_list = [
         "units": {("m2",): (1,)},
         "can_resample": False,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "qp",
@@ -155,7 +153,6 @@ agg_var_list = [
         "units": {"s": (1,)},
         "can_resample": False,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "grad",
@@ -166,7 +163,6 @@ agg_var_list = [
         "units": {("m",): (1,)},
         "can_resample": False,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "bed_grad",
@@ -177,7 +173,6 @@ agg_var_list = [
         "units": {("m",): (1,)},
         "can_resample": False,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "wl_at_xsec",
@@ -188,12 +183,18 @@ agg_var_list = [
         "units": {("m",): (1,)},
         "can_resample": False,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     # Pump variables
-    # NOT YET IMPLEMENTED (MY CODE) {'short_name': 'q_pump', 'long_name': 'Pump discharge', 'signed': False,
-    # 'applicable_methods': ALL_AGG_METHODS, 'var_type': VT_PUMP, 'units':{('m3','s'):(1, 1), ('m3', 'h'):(1, 3600), ('L','s'):(1000,1)},
-    # 'can_resample': False, 'pre_resample_method': PRM_NONE},
+    {
+        'short_name': 'q_pump',
+        'long_name': 'Pump discharge',
+        'signed': False,
+        'applicable_methods': ALL_AGG_METHODS,
+        'var_type': VT_PUMP,
+        'units': {('m3', 's'): (1, 1), ('m3', 'h'): (1, 3600), ('L', 's'): (1000, 1)},
+        'can_resample': False,
+        'pre_resample_method': PRM_NONE
+    },
     # Node variables
     {
         "short_name": "s1",
@@ -204,7 +205,6 @@ agg_var_list = [
         "units": {("m.a.s.l.",): (1,)},
         "can_resample": True,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "vol",
@@ -215,7 +215,6 @@ agg_var_list = [
         "units": {("m3",): (1,)},
         "can_resample": True,
         "pre_resample_method": PRM_SPLIT,
-        "requirements": [],
     },
     {
         "short_name": "rain",
@@ -226,7 +225,6 @@ agg_var_list = [
         "units": {("m3", "s"): (1, 1), ("m3", "h"): (1, 3600)},
         "can_resample": True,
         "pre_resample_method": PRM_SPLIT,
-        "requirements": [],
     },
     {
         "short_name": "rain_depth",
@@ -237,7 +235,6 @@ agg_var_list = [
         "units": {("mm", "s"): (1000, 1), ("mm", "h"): (1000, 3600)},
         "can_resample": True,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "infiltration_rate_simple",
@@ -270,7 +267,6 @@ agg_var_list = [
         "units": {("m2",): (1,)},
         "can_resample": False,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "uc",
@@ -281,7 +277,6 @@ agg_var_list = [
         "units": {("m", "s"): (1, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "ucx",
@@ -292,7 +287,6 @@ agg_var_list = [
         "units": {("m", "s"): (1, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "ucy",
@@ -303,7 +297,6 @@ agg_var_list = [
         "units": {("m", "s"): (1, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     # 'Leakage' ???
     {
@@ -315,7 +308,6 @@ agg_var_list = [
         "units": {("m3", "s"): (1, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_SPLIT,
-        "requirements": [],
     },
     {
         "short_name": "q_lat_mm",
@@ -326,7 +318,6 @@ agg_var_list = [
         "units": {("mm", "s"): (1000, 1), ("mm", "h"): (1000, 3600)},
         "can_resample": True,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "intercepted_volume",
@@ -359,7 +350,6 @@ agg_var_list = [
         "units": {("m3", "s"): (1, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_SPLIT,
-        "requirements": [],
     },
     {
         "short_name": "q_sss_mm",
@@ -370,7 +360,6 @@ agg_var_list = [
         "units": {("mm", "s"): (1000, 1), ("mm", "h"): (1000, 3600)},
         "can_resample": True,
         "pre_resample_method": PRM_NONE,
-        "requirements": [],
     },
     {
         "short_name": "q_in_x",
@@ -381,7 +370,6 @@ agg_var_list = [
         "units": {("m3", "s"): (1, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_1D,
-        "requirements": [],
     },
     {
         "short_name": "q_in_x_mm",
@@ -392,7 +380,6 @@ agg_var_list = [
         "units": {("mm", "s"): (1000, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_1D,
-        "requirements": [],
     },
     {
         "short_name": "q_in_y",
@@ -403,7 +390,6 @@ agg_var_list = [
         "units": {("m3", "s"): (1, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_1D,
-        "requirements": [],
     },
     {
         "short_name": "q_in_y_mm",
@@ -414,7 +400,6 @@ agg_var_list = [
         "units": {("mm", "s"): (1000, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_1D,
-        "requirements": [],
     },
     {
         "short_name": "q_out_x",
@@ -425,7 +410,6 @@ agg_var_list = [
         "units": {("m3", "s"): (1, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_1D,
-        "requirements": [],
     },
     {
         "short_name": "q_out_x_mm",
@@ -436,7 +420,6 @@ agg_var_list = [
         "units": {("mm", "s"): (1000, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_1D,
-        "requirements": [],
     },
     {
         "short_name": "q_out_y",
@@ -447,7 +430,6 @@ agg_var_list = [
         "units": {("m3", "s"): (1, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_1D,
-        "requirements": [],
     },
     {
         "short_name": "q_out_y_mm",
@@ -458,7 +440,6 @@ agg_var_list = [
         "units": {("mm", "s"): (1000, 1)},
         "can_resample": True,
         "pre_resample_method": PRM_1D,
-        "requirements": [],
     },
 ]
 

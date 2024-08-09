@@ -28,16 +28,26 @@ class Preset:
         description: str = "",
         aggregations=None,
         resample_point_layer: bool = False,
+
         flowlines_style: Style = None,
         cells_style: Style = None,
         nodes_style: Style = None,
+        pumps_style: Style = None,
+        pumps_linestring_style: Style = None,
+
         flowlines_style_param_values: dict = None,
         cells_style_param_values: dict = None,
         nodes_style_param_values: dict = None,
+        pumps_style_param_values: dict = None,
+        pumps_linestring_style_param_values: dict = None,
+
         flowlines_layer_name: str = None,
         cells_layer_name: str = None,
         nodes_layer_name: str = None,
+        pumps_layer_name: str = None,
+        pumps_linestring_layer_name: str = None,
         raster_layer_name: str = None,
+
         only_manholes: bool = False,
     ):
         if aggregations is None:
@@ -46,16 +56,26 @@ class Preset:
         self.description = description
         self.__aggregations = aggregations
         self.resample_point_layer = resample_point_layer
+
         self.flowlines_style = flowlines_style
         self.cells_style = cells_style
         self.nodes_style = nodes_style
+        self.pumps_style = pumps_style
+        self.pumps_linestring_style = pumps_linestring_style
+
         self.flowlines_style_param_values = flowlines_style_param_values
         self.cells_style_param_values = cells_style_param_values
         self.nodes_style_param_values = nodes_style_param_values
+        self.pumps_style_param_values = pumps_style_param_values
+        self.pumps_linestring_style_param_values = pumps_linestring_style_param_values
+
         self.flowlines_layer_name = flowlines_layer_name
         self.cells_layer_name = cells_layer_name
         self.nodes_layer_name = nodes_layer_name
+        self.pumps_layer_name = pumps_layer_name
+        self.pumps_linestring_layer_name = pumps_linestring_layer_name
         self.raster_layer_name = raster_layer_name
+
         self.only_manholes = only_manholes
 
     def add_aggregation(self, aggregation: Aggregation):
