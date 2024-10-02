@@ -167,6 +167,7 @@ class ThreeDiPlugin(QObject, ProjectStateMixin):
         self.model.result_checked.connect(self.map_animator.results_changed)
         self.model.result_unchecked.connect(self.map_animator.results_changed)
         self.model.result_added.connect(self.map_animator.results_changed)
+        self.model.result_removed.connect(self.map_animator.results_changed)
         self.temporal_manager.updated.connect(self.map_animator.update_results)
 
         # flow summary signals
@@ -237,6 +238,10 @@ class ThreeDiPlugin(QObject, ProjectStateMixin):
             if not tool.write(doc, node):
                 return False
 
+        # Also allow animator to persist settings
+        if not self.map_animator.write(doc, node):
+            return False
+
         return True
 
     def write_map_layer(self, layer: QgsMapLayer, elem: QDomElement, _: QDomDocument):
@@ -262,6 +267,11 @@ class ThreeDiPlugin(QObject, ProjectStateMixin):
             if not tool.read(tool_node):
                 self.model.clear()
                 return False
+
+        # Also allow animator to read saved settings
+        if not self.map_animator.read(tool_node):
+            self.model.clear()
+            return False
 
         return True
 

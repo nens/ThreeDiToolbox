@@ -1,35 +1,150 @@
+from bisect import bisect_left
+from enum import Enum
+from functools import lru_cache
 from qgis.core import NULL
 from qgis.core import QgsProject
-from qgis.PyQt.QtCore import Qt, pyqtSlot
+from qgis.PyQt.QtCore import pyqtSlot
+from qgis.PyQt.QtCore import QSize
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QDoubleValidator
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtGui import QIntValidator
 from qgis.PyQt.QtWidgets import QCheckBox
 from qgis.PyQt.QtWidgets import QComboBox
-from qgis.PyQt.QtWidgets import QHBoxLayout, QGridLayout
-from qgis.PyQt.QtWidgets import QWidget
+from qgis.PyQt.QtWidgets import QDialog
+from qgis.PyQt.QtWidgets import QDialogButtonBox
+from qgis.PyQt.QtWidgets import QGridLayout
 from qgis.PyQt.QtWidgets import QGroupBox
-from threedigrid.admin.constants import NO_DATA_VALUE
+from qgis.PyQt.QtWidgets import QHBoxLayout
+from qgis.PyQt.QtWidgets import QLabel
+from qgis.PyQt.QtWidgets import QLineEdit
+from qgis.PyQt.QtWidgets import QPushButton
+from qgis.PyQt.QtWidgets import QVBoxLayout
+from qgis.PyQt.QtWidgets import QWidget
+from qgis.PyQt.QtXml import QDomDocument
+from qgis.PyQt.QtXml import QDomElement
+from threedi_results_analysis import PLUGIN_DIR
+from threedi_results_analysis.datasource.result_constants import AGGREGATION_OPTIONS
 from threedi_results_analysis.datasource.result_constants import DISCHARGE
 from threedi_results_analysis.datasource.result_constants import H_TYPES
 from threedi_results_analysis.datasource.result_constants import NEGATIVE_POSSIBLE
 from threedi_results_analysis.datasource.result_constants import Q_TYPES
 from threedi_results_analysis.datasource.result_constants import WATERLEVEL
-from threedi_results_analysis.datasource.result_constants import AGGREGATION_OPTIONS
 from threedi_results_analysis.datasource.threedi_results import ThreediResult
-from threedi_results_analysis.threedi_plugin_model import ThreeDiResultItem, ThreeDiGridItem
-from threedi_results_analysis.utils.user_messages import StatusProgressBar
-from threedi_results_analysis.utils.utils import generate_parameter_config, is_substance_variable, pretty
+from threedi_results_analysis.threedi_plugin_model import ThreeDiGridItem
+from threedi_results_analysis.threedi_plugin_model import ThreeDiResultItem
 from threedi_results_analysis.utils.timing import timing
+from threedi_results_analysis.utils.user_messages import pop_up_critical
+from threedi_results_analysis.utils.user_messages import StatusProgressBar
+from threedi_results_analysis.utils.utils import generate_parameter_config
+from threedi_results_analysis.utils.utils import is_substance_variable
+from threedi_results_analysis.utils.utils import pretty
+from threedigrid.admin.constants import NO_DATA_VALUE
 from typing import List
 
-import threedi_results_analysis.tool_animation.animation_styler as styler
 import copy
 import logging
 import math
 import numpy as np
-from bisect import bisect_left
-from functools import lru_cache
+import threedi_results_analysis.tool_animation.animation_styler as styler
 
 
 logger = logging.getLogger(__name__)
+
+
+class MethodEnum(str, Enum):
+    PRETTY = "Pretty Breaks"
+    PERCENTILE = "Equal Count (Quantile)"
+
+
+class MapAnimatorSettings(object):
+    lower_cutoff_percentile: float = 2.0
+    upper_cutoff_percentile: float = 98.0
+    method: MethodEnum = MethodEnum.PRETTY
+    nr_classes: int = 24  # Must be EVEN!
+
+    def __str__(self):
+        return f"{self.lower_cutoff_percentile} {self.upper_cutoff_percentile} {self.method.value} {self.nr_classes}"
+
+
+class MapAnimatorSettingsdialog(QDialog):
+    def __init__(self, parent, title: str, default_settings: MapAnimatorSettings):
+        super().__init__(parent)
+        self.setWindowTitle(f"Visualisation settings for {title}")
+
+        layout = QVBoxLayout(self)
+        self.setLayout(layout)
+
+        settings_group = QGroupBox(self)
+        settings_group.setLayout(QGridLayout())
+
+        # Set up GUI and populate with settings
+        settings_group.layout().addWidget(QLabel("Lower cutoff percentile:"), 0, 0)
+        self.lower_cutoff_percentile_lineedit = QLineEdit(str(default_settings.lower_cutoff_percentile), settings_group)
+        lower_percentile_validator = QDoubleValidator(0.0, 100.0, 2, self.lower_cutoff_percentile_lineedit)
+        lower_percentile_validator.setNotation(QDoubleValidator.StandardNotation)
+        self.lower_cutoff_percentile_lineedit.setValidator(lower_percentile_validator)
+        settings_group.layout().addWidget(self.lower_cutoff_percentile_lineedit, 0, 1)
+
+        settings_group.layout().addWidget(QLabel("Upper cutoff percentile:"), 1, 0)
+        self.upper_cutoff_percentile_lineedit = QLineEdit(str(default_settings.upper_cutoff_percentile), settings_group)
+        upper_percentile_validator = QDoubleValidator(0.0, 100.0, 2, self.upper_cutoff_percentile_lineedit)
+        upper_percentile_validator.setNotation(QDoubleValidator.StandardNotation)
+        self.upper_cutoff_percentile_lineedit.setValidator(upper_percentile_validator)
+        settings_group.layout().addWidget(self.upper_cutoff_percentile_lineedit, 1, 1)
+
+        settings_group.layout().addWidget(QLabel("Method:"), 2, 0)
+        self.method_combo = QComboBox(settings_group)
+        self.method_combo.addItems([s.value for s in MethodEnum])
+        for c in range(self.method_combo.count()):
+            if default_settings.method.value == self.method_combo.itemText(c):
+                self.method_combo.setCurrentIndex(c)
+                break
+        settings_group.layout().addWidget(self.method_combo, 2, 1)
+
+        settings_group.layout().addWidget(QLabel("Preferred number of classes:"), 3, 0)
+        self.nr_classes_lineedit = QLineEdit(str(default_settings.nr_classes), settings_group)
+        self.nr_classes_lineedit.setValidator(QIntValidator(2, 42, self.nr_classes_lineedit))
+        settings_group.layout().addWidget(self.nr_classes_lineedit, 3, 1)
+
+        layout.addWidget(settings_group)
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
+
+        layout.addWidget(buttonBox)
+
+    def accept(self) -> None:
+        # Check logic
+        if int(self.nr_classes_lineedit.text()) % 2 != 0:
+            pop_up_critical("Number of classes should be even.")
+            return
+        if int(self.nr_classes_lineedit.text()) <= 0 or int(self.nr_classes_lineedit.text()) > 42:
+            pop_up_critical("Number of classes should be greater than 0 and less then 42.")
+            return
+        upper_cutoff_percentile = float(self.upper_cutoff_percentile_lineedit.text())
+        lower_cutoff_percentile = float(self.lower_cutoff_percentile_lineedit.text())
+        if upper_cutoff_percentile <= 0 or upper_cutoff_percentile >= 100:
+            pop_up_critical("The upper cutoff percentile should be greater than 0 and less than 100.")
+            return
+        if lower_cutoff_percentile <= 0 or lower_cutoff_percentile >= 100:
+            pop_up_critical("The lower cutoff percentile should be greater than 0 and less than 100.")
+            return
+
+        if upper_cutoff_percentile <= lower_cutoff_percentile:
+            pop_up_critical("The upper cutoff percentile should be greater than the lower cutoff percentile.")
+            return
+
+        return super().accept()
+
+    def get_settings(self) -> MapAnimatorSettings:
+        result = MapAnimatorSettings()
+        result.lower_cutoff_percentile = float(self.lower_cutoff_percentile_lineedit.text())
+        result.upper_cutoff_percentile = float(self.upper_cutoff_percentile_lineedit.text())
+        result.nr_classes = int(self.nr_classes_lineedit.text())
+        result.method = MethodEnum(self.method_combo.currentText())
+        return result
 
 
 def get_layer_by_id(layer_id):
@@ -54,9 +169,9 @@ def threedi_result_legend_class_bounds(
     lower_cutoff_percentile: float,
     upper_cutoff_percentile: float,
     relative_to_t0: bool,
+    nr_classes: int,
     simple=False,
-    method: str = "pretty",
-    nr_classes: int = styler.ANIMATION_LAYERS_NR_LEGEND_CLASSES
+    method: str = "Pretty Breaks",
 ) -> List[float]:
     """
     Calculate percentile values given variable in a 3Di results netcdf
@@ -74,7 +189,7 @@ def threedi_result_legend_class_bounds(
     :param lower_threshold: ignore values below this threshold
     :param relative_to_t0: calculate percentiles on difference w/ initial values (applied before absolute)
     :param nodatavalue: ignore these values
-    :param method: 'pretty' (pretty breaks) or 'percentile' (equal count)
+    :param method: 'Pretty Breaks' or 'Equal Count (Quantile)'
     """
 
     class_bounds_empty = [0] * nr_classes
@@ -158,17 +273,17 @@ def threedi_result_legend_class_bounds(
             )
         ]
 
-    if method == "pretty":
+    if method == MethodEnum.PRETTY.value:
         try:
             result = pretty(values_cutoff, n=nr_classes)
         except ValueError:  # All values are the same
             result = class_bounds_empty
-    elif method == "percentile":
+    elif method == MethodEnum.PERCENTILE.value:
         result = np.nanpercentile(
             values_cutoff, class_bounds_percentiles
         ).tolist()
     else:
-        raise ValueError("'method' must be one of 'pretty', 'percentile'")
+        raise ValueError(f"'method' must be one of '{MethodEnum.PRETTY.value}', '{MethodEnum.PERCENTILE.value}'")
 
     real_min = 0 if absolute else np.nanmin(values).item()
     real_max = np.nanmax(values).item()
@@ -193,6 +308,9 @@ class MapAnimator(QGroupBox):
         self.node_parameters = None
         self.line_parameters = None
 
+        self.node_parameter_setting = {}
+        self.line_parameter_setting = {}
+
         self.current_datetime = None
         self.setup_ui(parent)
 
@@ -208,6 +326,7 @@ class MapAnimator(QGroupBox):
 
         self._update_parameter_attributes()
         self._update_parameter_combo_boxes()
+        self._update_parameter_settings()
 
         if not active:
             return
@@ -216,19 +335,128 @@ class MapAnimator(QGroupBox):
         self.update_results()
         # iface.mapCanvas().refresh()
 
+    def _update_parameter_settings(self):
+        # Update cached parameter settings, remove param if no longer present
+        param_settings_to_delete = []
+        for param_key in self.node_parameter_setting:
+            found = False
+            for param in self.node_parameters.values():
+                if param_key == f"{param['name']}-{param['unit']}-{param['parameters']}":
+                    # This parameter is still present in results, so keep it.
+                    found = True
+                    break
+            if not found:
+                param_settings_to_delete.append(param_key)
+        for param_key in param_settings_to_delete:
+            logger.info(f"Removing settings for {param_key} as no longer present in all results")
+            del self.node_parameter_setting[param_key]
+
+        param_settings_to_delete.clear()
+        for param_key in self.line_parameter_setting:
+            found = False
+            for param in self.line_parameters.values():
+                if param_key == f"{param['name']}-{param['unit']}-{param['parameters']}":
+                    found = True
+                    break
+            if not found:
+                param_settings_to_delete.append(param_key)
+        for param_key in param_settings_to_delete:
+            logger.info(f"Removing settings for {param_key} as no longer present in all results")
+            del self.line_parameter_setting[param_key]
+
+    def write(self, doc: QDomDocument, xml_elem: QDomElement) -> bool:
+        """Called when a QGS project is written, allowing each tool to presist
+        additional info int the dedicated xml tools node."""
+
+        animator_node = doc.createElement("map_animator")
+        xml_elem.appendChild(animator_node)
+
+        node_parameter_setting_element = doc.createElement("node_parameter_setting")
+        for param_key, settings in self.node_parameter_setting.items():
+            node_parameter_setting_element.appendChild(MapAnimator._setting_to_xml(doc, param_key, settings))
+
+        line_parameter_setting_element = doc.createElement("line_parameter_setting")
+        for param_key, settings in self.line_parameter_setting.items():
+            line_parameter_setting_element.appendChild(MapAnimator._setting_to_xml(doc, param_key, settings))
+
+        animator_node.appendChild(node_parameter_setting_element)
+        animator_node.appendChild(line_parameter_setting_element)
+
+        return True
+
+    @staticmethod
+    def _setting_to_xml(doc: QDomDocument, param_key: str, settings: MapAnimatorSettings) -> QDomElement:
+        settings_element = doc.createElement("ParameterSetting")
+        # We write the parameter key as attribute as it might contain spaces
+        settings_element.setAttribute("parameter", param_key)
+        lower_cutoff_percentile_element = doc.createElement("lower_cutoff_percentile")
+        lower_cutoff_percentile_element.appendChild(doc.createTextNode(str(settings.lower_cutoff_percentile)))
+        upper_cutoff_percentile_element = doc.createElement("upper_cutoff_percentile")
+        upper_cutoff_percentile_element.appendChild(doc.createTextNode(str(settings.upper_cutoff_percentile)))
+        method_element = doc.createElement("method")
+        method_element.appendChild(doc.createTextNode(settings.method.value))
+        nr_classes_element = doc.createElement("nr_classes")
+        nr_classes_element.appendChild(doc.createTextNode(str(settings.nr_classes)))
+        settings_element.appendChild(lower_cutoff_percentile_element)
+        settings_element.appendChild(upper_cutoff_percentile_element)
+        settings_element.appendChild(method_element)
+        settings_element.appendChild(nr_classes_element)
+        return settings_element
+
+    def read(self, xml_elem: QDomElement) -> bool:
+        animator_node = xml_elem.firstChildElement("map_animator")
+        if not animator_node:
+            logger.info("No animation settings in project")
+            return True
+
+        self.node_parameter_setting.clear()
+        nodes_parameter_settings = animator_node.elementsByTagName("node_parameter_setting")
+        assert nodes_parameter_settings.count() == 1
+        nodes_parameter_settings = nodes_parameter_settings.item(0).toElement()
+        param_nodes = nodes_parameter_settings.childNodes()
+        for i in range(param_nodes.count()):
+            param_node = param_nodes.at(i).toElement()
+            param_key = param_node.attribute("parameter")
+            self.node_parameter_setting[param_key] = MapAnimator._setting_from_xml(param_node)
+
+        self.line_parameter_setting.clear()
+        line_parameter_settings = animator_node.elementsByTagName("line_parameter_setting")
+        assert line_parameter_settings.count() == 1
+        line_parameter_settings = line_parameter_settings.item(0).toElement()
+        param_lines = line_parameter_settings.childNodes()
+        for i in range(param_lines.count()):
+            param_line = param_lines.at(i).toElement()
+            param_key = param_line.attribute("parameter")
+            self.line_parameter_setting[param_key] = MapAnimator._setting_from_xml(param_line)
+
+        return True
+
+    @staticmethod
+    def _setting_from_xml(param_node: QDomElement) -> MapAnimatorSettings:
+        setting = MapAnimatorSettings()
+        assert param_node.elementsByTagName("lower_cutoff_percentile").count() == 1
+        setting.lower_cutoff_percentile = float(param_node.elementsByTagName("lower_cutoff_percentile").item(0).toElement().text())
+        assert param_node.elementsByTagName("upper_cutoff_percentile").count() == 1
+        setting.upper_cutoff_percentile = float(param_node.elementsByTagName("upper_cutoff_percentile").item(0).toElement().text())
+        assert param_node.elementsByTagName("method").count() == 1
+        setting.method = MethodEnum(param_node.elementsByTagName("method").item(0).toElement().text())
+        assert param_node.elementsByTagName("nr_classes").count() == 1
+        setting.nr_classes = int(param_node.elementsByTagName("nr_classes").item(0).toElement().text())
+        return setting
+
     def _update_parameter_attributes(self):
         config = self._get_active_parameter_config()
         self.line_parameters = {r["name"]: r for r in config["q"]}
         self.node_parameters = {r["name"]: r for r in config["h"]}
 
     def _style_line_layers(self, result_item: ThreeDiResultItem, progress_bar):
+        current_line_settings = self.line_parameter_setting.get(self.current_line_parameter_key, MapAnimatorSettings())
         threedi_result = result_item.threedi_result
         line_parameter_class_bounds, _ = self._get_class_bounds_line(
-            threedi_result, self.current_line_parameter["parameters"]
+            threedi_result, self.current_line_parameter["parameters"], current_line_settings
         )
         grid_item = result_item.parent()
         assert isinstance(grid_item, ThreeDiGridItem)
-        logger.info("Styling flowline layer")
         layer_id = grid_item.layer_ids["flowline"]
         virtual_field_name = result_item._result_field_names[layer_id][0]
         postfix = virtual_field_name[6:]  # remove "result" prefix
@@ -243,16 +471,16 @@ class MapAnimator(QGroupBox):
 
     def _style_node_layers(self, result_item: ThreeDiResultItem, progress_bar):
         """ Compute class bounds and apply style to node and cell layers. """
+        current_node_settings = self.node_parameter_setting.get(self.current_node_parameter_key, MapAnimatorSettings())
         threedi_result = result_item.threedi_result
         node_parameter_class_bounds, _ = self._get_class_bounds_node(
-            threedi_result, self.current_node_parameter["parameters"],
+            threedi_result, self.current_node_parameter["parameters"], current_node_settings
         )
 
         # Adjust the styling of the grid layer based on the bounds and result field name
         grid_item = result_item.parent()
         assert isinstance(grid_item, ThreeDiGridItem)
 
-        logger.info("Styling node layer")
         layer_id = grid_item.layer_ids["node"]
         layer = get_layer_by_id(layer_id)
         virtual_field_name = result_item._result_field_names[layer_id][0]
@@ -263,6 +491,7 @@ class MapAnimator(QGroupBox):
                 node_parameter_class_bounds,
                 self.current_node_parameter["parameters"],
                 False,
+                current_node_settings.nr_of_classes,
                 postfix,
             )
         else:
@@ -288,6 +517,7 @@ class MapAnimator(QGroupBox):
                     node_parameter_class_bounds,
                     self.current_node_parameter["parameters"],
                     True,
+                    current_node_settings.nr_of_classes,
                     postfix,
                 )
             else:
@@ -307,6 +537,14 @@ class MapAnimator(QGroupBox):
     @property
     def current_node_parameter(self):
         return self.node_parameters[self.node_parameter_combo_box.currentText()]
+
+    @property
+    def current_node_parameter_key(self):
+        return f"{self.current_node_parameter['name']}-{self.current_node_parameter['unit']}-{self.current_node_parameter['parameters']}"
+
+    @property
+    def current_line_parameter_key(self):
+        return f"{self.current_line_parameter['name']}-{self.current_line_parameter['unit']}-{self.current_line_parameter['parameters']}"
 
     def _restyle(self, lines, nodes):
         result_items = self.model.get_results(checked_only=True)
@@ -330,7 +568,7 @@ class MapAnimator(QGroupBox):
         self._restyle(lines=False, nodes=True)
         self.update_results()
 
-    def _get_class_bounds_node(self, threedi_result, node_variable):
+    def _get_class_bounds_node(self, threedi_result, node_variable, settings: MapAnimatorSettings):
         base_nc_name = strip_agg_options(node_variable)
         if (
             base_nc_name in NEGATIVE_POSSIBLE and NEGATIVE_POSSIBLE[base_nc_name]
@@ -345,10 +583,11 @@ class MapAnimator(QGroupBox):
             variable=node_variable,
             absolute=False,
             lower_threshold=lower_threshold,
-            lower_cutoff_percentile=2,
-            upper_cutoff_percentile=98,
+            lower_cutoff_percentile=settings.lower_cutoff_percentile,
+            upper_cutoff_percentile=settings.upper_cutoff_percentile,
             relative_to_t0=self.difference_checkbox.isChecked(),
-            method="pretty",
+            nr_classes=settings.nr_classes,
+            method=settings.method,
         )
         with timing('percentiles1'):
             surfacewater_bounds = threedi_result_legend_class_bounds(
@@ -360,16 +599,17 @@ class MapAnimator(QGroupBox):
             )
         return surfacewater_bounds, groundwater_bounds
 
-    def _get_class_bounds_line(self, threedi_result, line_variable):
+    def _get_class_bounds_line(self, threedi_result, line_variable, settings: MapAnimatorSettings):
         kwargs = dict(
             threedi_result=threedi_result,
             variable=line_variable,
             absolute=True,
             lower_threshold=styler.DEFAULT_LOWER_THRESHOLD,
-            lower_cutoff_percentile=2,
-            upper_cutoff_percentile=98,
+            lower_cutoff_percentile=settings.lower_cutoff_percentile,
+            upper_cutoff_percentile=settings.upper_cutoff_percentile,
             relative_to_t0=self.difference_checkbox.isChecked(),
-            method="pretty",
+            nr_classes=settings.nr_classes,
+            method=settings.method,
         )
         with timing('percentiles3'):
             surfacewater_bounds = threedi_result_legend_class_bounds(
@@ -577,7 +817,13 @@ class MapAnimator(QGroupBox):
         self.line_parameter_combo_box = QComboBox(line_group)
         self.line_parameter_combo_box.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.line_parameter_combo_box.setToolTip("Choose flowline variable to display")
-        line_group.layout().addWidget(self.line_parameter_combo_box, 0, 0, Qt.AlignTop)
+        line_group.layout().addWidget(self.line_parameter_combo_box, 0, 0, 1, 2, Qt.AlignTop)
+        equalizer_icon = QIcon(str(PLUGIN_DIR / "icons" / "sliders.svg"))
+
+        setting_button_line = QPushButton(equalizer_icon, "", line_group)
+        setting_button_line.setFixedSize(QSize(26, 26))
+        setting_button_line.clicked.connect(self.show_line_settings)
+        line_group.layout().addWidget(setting_button_line, 1, 1)
 
         self.HLayout.addWidget(line_group)
 
@@ -586,7 +832,7 @@ class MapAnimator(QGroupBox):
         self.node_parameter_combo_box = QComboBox(node_group)
         self.node_parameter_combo_box.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.node_parameter_combo_box.setToolTip("Choose node variable to display")
-        node_group.layout().addWidget(self.node_parameter_combo_box)
+        node_group.layout().addWidget(self.node_parameter_combo_box, 0, 0, 1, 2)
 
         self.difference_checkbox = QCheckBox("Relative", self)
         self.difference_checkbox.setToolTip(
@@ -595,6 +841,11 @@ class MapAnimator(QGroupBox):
 
         node_group.layout().addWidget(self.difference_checkbox, 1, 0)
 
+        setting_button_node = QPushButton(equalizer_icon, "", line_group)
+        setting_button_node.setFixedSize(QSize(26, 26))
+        setting_button_node.clicked.connect(self.show_node_settings)
+        node_group.layout().addWidget(setting_button_node, 1, 1)
+
         self.HLayout.addWidget(node_group)
 
         self.line_parameter_combo_box.activated.connect(self._restyle_and_update_lines)
@@ -602,6 +853,28 @@ class MapAnimator(QGroupBox):
         self.difference_checkbox.stateChanged.connect(self._restyle_and_update_nodes)
 
         self.setEnabled(False)
+
+    @pyqtSlot(bool)
+    def show_node_settings(self, _: bool):
+        current_node_settings = MapAnimatorSettings()
+        if self.current_node_parameter_key in self.node_parameter_setting:
+            current_node_settings = self.node_parameter_setting[self.current_node_parameter_key]
+
+        dialog = MapAnimatorSettingsdialog(self, self.current_node_parameter['name'], current_node_settings)
+        if dialog.exec():
+            self.node_parameter_setting[self.current_node_parameter_key] = dialog.get_settings()
+            self._restyle(lines=False, nodes=True)
+
+    @pyqtSlot(bool)
+    def show_line_settings(self, _: bool):
+        current_line_settings = MapAnimatorSettings()
+        if self.current_line_parameter_key in self.line_parameter_setting:
+            current_line_settings = self.line_parameter_setting[self.current_line_parameter_key]
+
+        dialog = MapAnimatorSettingsdialog(self, self.current_line_parameter['name'], current_line_settings)
+        if dialog.exec():
+            self.line_parameter_setting[self.current_line_parameter_key] = dialog.get_settings()
+            self._restyle(lines=True, nodes=False)
 
     @staticmethod
     def index_to_duration(index, timestamps):
