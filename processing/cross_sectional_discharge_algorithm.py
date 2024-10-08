@@ -41,6 +41,7 @@ from qgis.core import QgsMarkerSymbol
 from qgis.core import QgsProcessing
 from qgis.core import QgsProcessingAlgorithm
 from qgis.core import QgsProcessingContext
+from qgis.core import QgsProcessingParameterBoolean
 from qgis.core import QgsProcessingParameterNumber
 from qgis.core import QgsProcessingParameterEnum
 from qgis.core import QgsProcessingParameterFeatureSink
@@ -56,7 +57,7 @@ from qgis.core import QgsWkbTypes
 from qgis.core import QgsGeometry
 from qgis.core import QgsFeature
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
-from shapely import wkt
+from shapely import wkb
 from threedigrid.admin.gridresultadmin import GridH5ResultAdmin
 from threedigrid.admin.constants import TYPE_V2_CHANNEL
 from threedigrid.admin.constants import TYPE_V2_CULVERT
@@ -109,6 +110,7 @@ class CrossSectionalDischargeAlgorithm(QgsProcessingAlgorithm):
     GRIDADMIN_GPKG = "GRIDADMIN_GPKG"
     RESULTS_3DI_INPUT = "RESULTS_3DI_INPUT"
     CROSS_SECTION_LINES_INPUT = "CROSS_SECTION_LINES_INPUT"
+    SELECTED_CROSS_SECTION_LINES = "SELECTED_CROSS_SECTION_LINES"
     START_TIME = "START_TIME"
     END_TIME = "END_TIME"
     SUBSET = "SUBSET"
@@ -160,6 +162,13 @@ class CrossSectionalDischargeAlgorithm(QgsProcessingAlgorithm):
                 self.CROSS_SECTION_LINES_INPUT,
                 self.tr("Cross-section lines"),
                 [QgsProcessing.TypeVectorLine],
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.SELECTED_CROSS_SECTION_LINES,
+                self.tr("Selected features only"),
             )
         )
 
@@ -240,6 +249,7 @@ class CrossSectionalDischargeAlgorithm(QgsProcessingAlgorithm):
             parameters, self.CROSS_SECTION_LINES_INPUT, context
         )
         self.cross_section_lines_id = cross_section_lines.id()
+        selected_cross_section_lines_only = self.parameterAsBool(parameters, self.SELECTED_CROSS_SECTION_LINES, context)
         start_time = (
             self.parameterAsInt(parameters, self.START_TIME, context)
             if parameters[self.START_TIME] is not None
@@ -318,7 +328,8 @@ class CrossSectionalDischargeAlgorithm(QgsProcessingAlgorithm):
 
         feedback.setProgress(0)
         self.total_discharges = dict()
-        if cross_section_lines.selectedFeatureCount() > 0:
+
+        if selected_cross_section_lines_only:
             iterator = cross_section_lines.getSelectedFeatures()
             nr_features = cross_section_lines.selectedFeatureCount()
         else:
@@ -332,7 +343,7 @@ class CrossSectionalDischargeAlgorithm(QgsProcessingAlgorithm):
             )
             transformed_geometry = gauge_line.geometry()
             transformed_geometry.transform(coordinate_transform)
-            shapely_linestring = wkt.loads(transformed_geometry.asWkt())
+            shapely_linestring = wkb.loads(bytes(transformed_geometry.asWkb()))
             tgt_ds = MEMORY_DRIVER.CreateDataSource("")
             ts_gauge_line, total_discharge = left_to_right_discharge_ogr(
                 gr=gr,
@@ -374,24 +385,25 @@ class CrossSectionalDischargeAlgorithm(QgsProcessingAlgorithm):
                 )
             feedback.setProgress(100 * i / nr_features)
 
-        np.savetxt(
-            self.csv_output_file_path,
-            ts_all_cross_section_lines,
-            delimiter=",",
-            header=",".join(column_names),
-            fmt=formatting,
-            comments="",
-        )
-        layer = QgsVectorLayer(self.csv_output_file_path, "Time series output")
-        context.temporaryLayerStore().addMapLayer(layer)
-        layer_details = QgsProcessingContext.LayerDetails(
-            "Output: Time series", context.project(), "Output: Time series"
-        )
-        context.addLayerToLoadOnCompletion(layer.id(), layer_details)
+        if nr_features > 0:
+            np.savetxt(
+                self.csv_output_file_path,
+                ts_all_cross_section_lines,
+                delimiter=",",
+                header=",".join(column_names),
+                fmt=formatting,
+                comments="",
+            )
+            layer = QgsVectorLayer(self.csv_output_file_path, "Time series output")
+            context.temporaryLayerStore().addMapLayer(layer)
+            layer_details = QgsProcessingContext.LayerDetails(
+                "Output: Time series", context.project(), "Output: Time series"
+            )
+            context.addLayerToLoadOnCompletion(layer.id(), layer_details)
 
         return {
             self.OUTPUT_FLOWLINES: self.flowlines_sink_dest_id,
-            self.OUTPUT_TIME_SERIES: self.csv_output_file_path,
+            self.OUTPUT_TIME_SERIES: self.csv_output_file_path if nr_features > 0 else None,
         }
 
     def postProcessAlgorithm(self, context, feedback):
